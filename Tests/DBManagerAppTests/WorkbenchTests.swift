@@ -52,3 +52,25 @@ import SwiftUI
     await database.close()
 }
 #endif
+
+@MainActor
+@Test func failedFileSwitchClearsPreviousObjectsAndActiveConnection() async throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let model = WorkbenchModel(localRoot: directory)
+    model.createLocal()
+    await model.operation?.value
+    model.allowWrites = true
+    model.sql = "CREATE TABLE previous_file(value)"
+    model.execute()
+    await model.operation?.value
+    #expect(model.objects.map(\.name) == ["previous_file"])
+    let corrupt = directory.appendingPathComponent("corrupt.sqlite")
+    try Data("synthetic non-SQLite content".utf8).write(to: corrupt)
+    model.open(corrupt)
+    #expect(model.fileName == nil && model.objects.isEmpty && model.result == nil && !model.allowWrites)
+    await model.operation?.value
+    #expect(model.error != nil && model.fileName == nil && model.objects.isEmpty && model.result == nil && !model.allowWrites)
+    await #expect(throws: DatabaseError.notOpen) { try await model.database.execute("SELECT 1") }
+    #expect(try Data(contentsOf: corrupt) == Data("synthetic non-SQLite content".utf8))
+}

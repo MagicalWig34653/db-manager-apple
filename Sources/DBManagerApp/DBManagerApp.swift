@@ -45,15 +45,21 @@ final class WorkbenchModel {
     func open(_ url: URL, create: Bool = false) {
         guard !busy else { return }
         busy = true; error = nil; result = nil
+        fileName = nil; objects = []; allowWrites = false
         operation = Task {
             defer { busy = false; operation = nil }
+            await database.close()
             do {
                 try await database.open(url, create: create)
+                let loadedObjects = try await database.objects()
                 fileName = url.lastPathComponent
-                allowWrites = false
-                objects = try await database.objects()
+                objects = loadedObjects
                 refreshLocalFiles()
-            } catch { self.error = error.localizedDescription }
+            } catch {
+                await database.close()
+                fileName = nil; objects = []; result = nil; allowWrites = false
+                self.error = error.localizedDescription
+            }
         }
     }
 
