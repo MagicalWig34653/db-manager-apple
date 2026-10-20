@@ -29,15 +29,7 @@ enum PostgresValues {
         case .date:
             var copy = buffer
             guard copy.readableBytes == 4, let days = copy.readInteger(as: Int32.self) else { throw DatabaseError.postgresFailed }
-            if days == .max { result = Cell(kind: .timestamp, value: "infinity") }
-            else if days == .min { result = Cell(kind: .timestamp, value: "-infinity") }
-            else {
-                let formatter = ISO8601DateFormatter()
-                formatter.timeZone = TimeZone(secondsFromGMT: 0)
-                formatter.formatOptions = [.withFullDate, .withDashSeparatorInDate]
-                let text = formatter.string(from: Date(timeIntervalSince1970: Double(Int64(days) * 86_400 + 946_684_800)))
-                result = Cell(kind: .timestamp, value: text.count == 10 ? text : "postgres-days-since-2000:\(days)")
-            }
+            result = Cell(kind: .timestamp, value: date(days))
         case .text, .varchar, .bpchar, .name:
             guard let value = String(data: Data(buffer.readableBytesView), encoding: .utf8) else { throw DatabaseError.invalidText }
             result = Cell(kind: .text, value: value)
@@ -105,23 +97,67 @@ enum PostgresValues {
         return (negative ? "-" : "") + integer + (scale > 0 ? "." + fraction : "")
     }
 
+    static func date(_ days: Int32) -> String {
+        if days == .max { return "infinity" }
+        if days == .min { return "-infinity" }
+        let civil = civilDate(Int64(days))
+        return civil.text + (civil.bc ? " BC" : "")
+    }
+
     static func timestamp(_ microseconds: Int64, zoned: Bool) -> String {
         if microseconds == .max { return "infinity" }
         if microseconds == .min { return "-infinity" }
-        var seconds = microseconds / 1_000_000
-        var fraction = microseconds % 1_000_000
-        if fraction < 0 { seconds -= 1; fraction += 1_000_000 }
-        // Integral seconds are exact throughout Int64 microsecond range. Fraction never uses Double.
-        let date = Date(timeIntervalSince1970: Double(seconds) + 946_684_800)
-        let formatter = ISO8601DateFormatter()
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.formatOptions = [.withInternetDateTime]
-        let text = formatter.string(from: date)
-        // Preserve unusual out-of-calendar-range values explicitly instead of inventing a date.
-        guard text.count == 20, text.hasSuffix("Z") else {
-            return "postgres-microseconds-since-2000:\(microseconds)" + (zoned ? ":UTC" : ":local")
+        let dayMicroseconds: Int64 = 86_400_000_000
+        let days = floorDivide(microseconds, by: dayMicroseconds)
+        // Remainder adjustment avoids multiplying a floored negative day near Int64.min.
+        var withinDay = microseconds % dayMicroseconds
+        if withinDay < 0 { withinDay += dayMicroseconds }
+        let civil = civilDate(days)
+        let hours = withinDay / 3_600_000_000
+        let minutes = withinDay / 60_000_000 % 60
+        let seconds = withinDay / 1_000_000 % 60
+        let fraction = withinDay % 1_000_000
+        return civil.text + "T" + padded(hours, width: 2) + ":" + padded(minutes, width: 2)
+            + ":" + padded(seconds, width: 2) + "." + padded(fraction, width: 6)
+            + (zoned ? "Z" : "") + (civil.bc ? " BC" : "")
+    }
+
+    // PostgreSQL uses the proleptic Gregorian calendar, including before 1582.
+    // Astronomical year zero is 1 BC. Count its leap day before mapping the era.
+    private static func daysBeforeYear(_ year: Int64) -> Int64 {
+        365 * year + floorDivide(year + 3, by: 4) - floorDivide(year + 99, by: 100)
+            + floorDivide(year + 399, by: 400)
+    }
+
+    private static func civilDate(_ postgresDays: Int64) -> (text: String, bc: Bool) {
+        // 2000*365 + 500 leap years - 20 centuries + 5 fourth centuries.
+        let absolute = postgresDays + 730_485
+        // Covers every Int32 date and every day reachable from Int64 microseconds.
+        var lower: Int64 = -6_000_000
+        var upper: Int64 = 6_000_001
+        while lower + 1 < upper {
+            let middle = lower + (upper - lower) / 2
+            if daysBeforeYear(middle) <= absolute { lower = middle }
+            else { upper = middle }
         }
-        let digits = String(fraction)
-        return String(text.dropLast()) + "." + String(repeating: "0", count: 6 - digits.count) + digits + (zoned ? "Z" : "")
+        let year = lower
+        let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+        let lengths: [Int64] = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+        var day = absolute - daysBeforeYear(year)
+        var month = 0
+        while day >= lengths[month] { day -= lengths[month]; month += 1 }
+        let displayYear = year <= 0 ? 1 - year : year
+        return (padded(displayYear, width: 4) + "-" + padded(Int64(month + 1), width: 2)
+                + "-" + padded(day + 1, width: 2), year <= 0)
+    }
+
+    private static func floorDivide(_ value: Int64, by divisor: Int64) -> Int64 {
+        let quotient = value / divisor
+        return value % divisor < 0 ? quotient - 1 : quotient
+    }
+
+    private static func padded(_ value: Int64, width: Int) -> String {
+        let text = String(value)
+        return String(repeating: "0", count: max(0, width - text.count)) + text
     }
 }

@@ -108,8 +108,19 @@ Präzisionsverlust. NaN/±infinity bleiben ausdrücklich benannte Decimalwerte.
 Int64 bleibt Dezimalstring, NULL/Leertext/Leerblob/Binärbytes getrennt, Bool true/false.
 Zeitstempel verwenden sechs exakt ganzzahlig erhaltene Mikrosekundenstellen;
 timestamptz wird UTC mit Z, timestamp ohne Zeitzonenbehauptung, date als Datum.
-Außerhalb der Kalenderdarstellung explizite PostgreSQL-Epochenwerte statt erfundener
-Daten. Unbekannte Typen/Arrays/Intervalle bleiben Binärbytes samt OID-Metadaten;
+Die Datumsdarstellung berechnet den proleptisch-gregorianischen Kalender allein
+mit begrenzten Int64-Operationen aus PostgreSQL-Tagen bzw. Mikrosekunden seit
+2000-01-01. Ganzzahlige Schaltjahreszählung und eine begrenzte binäre Jahressuche
+ersetzen Foundation-Kalender und Float-Konversion. Negative Tagesreste werden
+abwärts gerundet; sechs Mikrosekundenstellen bleiben exakt. Astronomisches Jahr
+0 wird als `0001 ... BC` ausgegeben, niemals als dasselbe Datum wie 1 AD. BC erhält
+den ausdrücklichen Suffix ` BC` nach Datum bzw. Zeit einschließlich optionalem Z;
+AD hat keinen Era-Suffix. Jahre haben mindestens vier Stellen, größere Jahre
+werden vollständig ausgegeben. Dies ist bei BC/erweiterten Jahren eine explizite
+PostgreSQL-Wertdarstellung, kein behaupteter allgemeiner ISO8601-Parservertrag.
+±infinity bleiben ausdrücklich benannt. Auch Int32-/Int64-Wirerandwerte werden
+ohne Überlauf behandelt; das erweitert nicht den gültigen Wertebereich des Servers.
+Unbekannte Typen/Arrays/Intervalle bleiben Binärbytes samt OID-Metadaten;
 kein ungeprüftes Deuten binärer Extensiontypen als Text.
 
 macOS14/iPadOS17 bleiben Deploymentziele. Entwicklung benötigt nun Swift6.2/Xcode26.3
@@ -133,3 +144,5 @@ Adapter, SSH, HTTP-Backend, Tresor, iCloud und Teams gehören nicht zu A2.
 - [PostgreSQL: Signalisierungsrechte](https://www.postgresql.org/docs/18/functions-admin.html#FUNCTIONS-ADMIN-SIGNAL)
 - [Apple: lokale Netzwerkprivatsphäre und Zweckbeschreibung](https://developer.apple.com/documentation/technotes/tn3179-understanding-local-network-privacy)
 - [PostgreSQL: Numeric-Wireformat, numeric_send/recv](https://github.com/postgres/postgres/blob/REL_18_STABLE/src/backend/utils/adt/numeric.c)
+- [PostgreSQL: proleptischer Kalender und Zeitwertebereiche](https://www.postgresql.org/docs/18/datatype-datetime.html)
+- [US Naval Observatory: gregorianische Schaltjahresregeln](https://aa.usno.navy.mil/faq/calendars)
