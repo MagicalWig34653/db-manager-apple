@@ -1,6 +1,10 @@
 # ADR-A002: Direkter nativer PostgreSQL-Pfad
 
-Status: **A2-Vorschlag zur unabhängigen QA**, keine selbst erteilte Produkt-/Releasefreigabe.
+Status: **Akzeptiert für den begrenzten A2-Entwicklungsstand** nach unabhängigem
+Review, geschlossenem QA-A2-01 und erfolgreicher exakter Apple-CI an `b72e62c`.
+Die konkrete unveröffentlichte NIOssl-Revision samt Original-Lizenzprovenienz ist
+ausdrücklich akzeptiert; ihr fehlendes Release-Tag bleibt ein Wartungsrisiko.
+Keine allgemeine Distributions-, Geräte-, Signing- oder OS-UI-Freigabe.
 Datum: 20.10.2026. [A1](ADR-A001-native-sqlite.md) bleibt vollständig verfügbar.
 
 ## Vertrag und Umsetzung

@@ -1,46 +1,62 @@
 # Status
 
-Stand: 20.10.2026. A1 als eigenständiges natives Entwicklungsinkrement abgenommen.
-SwiftUI-App und SystemSQLite3-Kern arbeiten ohne Go-Server. Datei öffnen/anlegen,
-Objektliste, SQL-Einzelstatement, ausdrückliche Schreibfreigabe, begrenzte typisierte
-Ergebnisse und Abbruch sind implementiert. Keine vollständige Datenbankverwaltung.
+Stand: 20.10.2026. A1 und A2 nach unabhängiger QA und exakter erfolgreicher CI
+im Apple-main integriert. Eigenständiger nativer SwiftUI-Arbeitsplatz ohne Go.
+Lokales SQLite und direktes PostgreSQL: Katalog, Einzelstatement, ausdrückliche
+Schreibfreigabe, begrenzte typisierte Ergebnisse und Abbruch. Zugangsdaten nur im
+Arbeitsspeicher; keine vollständige Datenbankverwaltung oder Credentialpersistenz.
 
-## Nachweise
+## Nachweise und Entscheidungen
 
-- Unabhängiger QA-Review der Ursprungskommitts `1668fe4`/`acd9032` und Fix `9ca73ca`:
-  keine offenen bestätigten Befunde. Fehlerhafter Dateiwechsel ließ zunächst alte
-  Objekte stehen; Fix plus ViewModelregression unabhängig nachgeprüft.
-- Sauberer Archivcheckout: `sh scripts/check-apple.sh` mit Kern-/App-Tests,
-  macOS-Build, generischem iPad-Simulator-Build und Dokumentationsprüfung bestanden.
-  Nach dem Fix zehn Swift-Tests, davon sieben Kern- und drei App-Prüfungen.
-- Zusätzliche QA-Proben für ATTACH/VACUUM/PRAGMA/Extension/Batch ohne unerlaubte
-  Seiteneffekte; fehlerhafte Originaldatei bytegleich erhalten.
-- [Apple-CI am geprüften Fix](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39490484574)
-  und [Dokumentations-CI](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39490484414)
-  tatsächlich erfolgreich. Integration als `8ea3c7c`, `ec3bbe9`, `4404f91`.
+- A1: zehn Swift-Tests, Mac-/generischer iPad-Simulator-Build und unabhängige
+  Sicherheits-/Lifecycleprüfungen bestanden; Dateiwechselfix geschlossen.
+  Integration `8ea3c7c`/`ec3bbe9`/`4404f91`. [Handoff A1](handoffs/A1.md).
+- A2: Quellen `89b2683`/`abaa3dc`/`b72e62c`, integriert als
+  `fdd533e`/`cd5d886`/`031b1e8`. Direkte PostgresNIO-Verbindung mit verpflichtendem
+  verify-full-TLS, separatem ebenfalls verifiziertem und an eigene Sessionidentität
+  gebundenem Abbruchkanal. Readonly durch DB-Transaktion und vorherigen eigenen
+  SELECT, begrenztes Streaming, genaue Decimal-/Integer-/Kalenderdarstellung.
+- Vollständiger unabhängiger A2-Review und gesonderte Fixnachprüfung bestanden.
+  QA-A2-01 verfälschte historische proleptische Daten und BC/AD; Fix unabhängig
+  mit 1.008 Datum-/4.032 Timestampvektoren sowie drei echten TLS-PG-Kalenderfällen
+  bestätigt. Keine offenen bestätigten A2-Befunde. [Handoff A2](handoffs/A2.md).
+- Autorenprüfung: 17 Kern-/5 Appprüfungen mit drei echten TLS-/Negativfixtures
+  aktiv bestanden, zusätzliche frische Mac-/iPad-Builds einschließlich Originaltexte
+  und Info.plist. Ohne Fixtureumgebung überspringt Standardswifttest sechs Livetests;
+  das ist kein zusätzlicher Live-Nachweis.
+- [Apple-CI am exakten letzten Fix](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39503396485)
+  und [Dokumentations-CI](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39503396416)
+  erfolgreich. Beide früheren A2-CI-Paare ebenfalls erfolgreich. Kombinierte Main-CI
+  nach Veröffentlichung separat kontrollieren. Lokale Leadintegration bestanden:
+  Swift-Testlauf mit ausdrücklich sechs übersprungenen Livetests, 1.008/4.032
+  Kalendervektoren, 13 Pins/Originalnotices einschließlich tatsächlicher Checkouts
+  und Dokumentation74/0. Kein neuer Live-/Geräte- oder Appbuildnachweis daraus.
+- [ADR-A002](decisions/ADR-A002-direct-postgres.md) akzeptiert den konkreten
+  unveröffentlichten offiziellen NIOssl-Revisionspin mit belegtem Apache-BoringSSL-
+  Originaltext. 13 gepinnte Abhängigkeiten, identische SwiftPM-/Xcode-Locks und
+  Originalnotices im Appbundle; fehlendes Release-Tag bleibt Wartungsrisiko.
+
+## Aktive Arbeit S2a
+
+Security-/Apple-Agent arbeitet in `.worktrees/vault-core`, `feat/vault-core`, Basis
+`7cbeb38`. Ausschließlich neues eigenständiges Packages/DBManagerVault, eigene Tests/
+Fixtures/Originaltexte/CI/Skripte, ADR-A003/Sicherheitsdokumente/Handoff. Keine App-/
+Xcode-/Rootpackage-/A2- oder zentralen Statusdateien. S1-Format aus Hauptrepo ist
+abgenommen, noch keine Produktpersistenz. Geplant sind Actor-Session, sichere atomare
+lokale Ablage, externer CAS-/Nutzungsanker und Recovery mit neuen Faktoren; unabhängige
+Core-QA und echte produktive Anchorintegration bleiben getrennte Gates.
 
 ## Grenzen und Fortsetzung
 
-macOS14/iPadOS17 sind erste Deployment-Arbeitsziele; keine echten Zielgeräte oder
-alten OS-Laufzeiten geprüft. Signierte Sandboxdurchsetzung und interaktiver UI-Smoke
-bleiben offen (Automation-/Bildschirmrechte sowie eigener Simulatorboot eingeschränkt).
-SwiftUI-ImageRenderer und echtes ViewModel wurden ohne diese Systemrechte geprüft.
-Keine fremden Geräte oder Systemberechtigungen verändert, eigene Jobs/Gerät/App entfernt.
+macOS14/iPadOS17 sind Deploymentziele, keine nachgewiesenen alten Laufzeiten.
+Echte Geräte, Signing-/Sandboxdurchsetzung, Distribution und interaktiver OS-UI-Smoke
+bleiben offen. NSLocalNetworkUsageDescription ist Zweckdeklaration, keine erteilte
+Berechtigung. Keine fremden Geräte/Container oder Systemrechte verändert.
+Keine nativen MySQL-/MariaDB-Adapter wegen belegtem TLS-Downgrade, kein SSH,
+HTTP-Backendclient, produktiver Tresor, Passkey, CloudKit-Sync oder Teamumfang.
+Abbruch garantiert keinen Rollback, READ ONLY keine vollständige DB-Sandbox.
+Eigener Code AGPL-3.0-only, Abhängigkeiten behalten ihre Original-Lizenzen.
 
-Kein Netzwerkadapter, optionaler Backendclient, Tresor, Passkey oder CloudKit-Sync.
-Keine echten Zugangsdaten persistiert. Eigener Code AGPL-3.0-only; Systembibliotheken
-behalten ihre Lizenzen. Nächste Produktpakete nach gemeinsamer Planung und Review.
-[Handoff A1](handoffs/A1.md), [Arbeitsplan](ARBEITSPLAN.md), [Einrichtung](../EINRICHTUNG.md).
-
-## Aktiver Auftrag A2
-
-Apple-Engineer arbeitet auf `feat/apple-postgres` in `.worktrees/apple-postgres`,
-Basis `ce0aedb`. Direkter PostgreSQL-Pfad ohne Go: verpflichtend verifiziertes TLS,
-flüchtige Zugangsdaten, Katalog/Einzelstatement und begrenzte verlustarme Ergebnisse.
-SQLitebetrieb bleibt erhalten. Besitz Produktmodule/SwiftUI, Package/Lock/Xcode,
-eigene Prüfungen/CI/Lizenzen/ADR/Einrichtung/Handoff; zentrale Status-/Planungsdateien
-pflegt Lead. Kein SSH, nativer MySQL-/MariaDB-Pfad, Tresor oder CloudKit in A2.
-Noch keine Implementierungs-/Review-/Gerätefreigabe. Handoff folgt mit dem Paket.
-
-Gemeinsames S1-Tresorformat im Hauptrepo unabhängig als Formatgrundlage abgenommen
-(ADR0005); produktive Persistenz S2 bleibt gesondert ungeprüft.
+Nächster Schritt: Leadintegrationsprüfung und neue Main-CI kontrollieren, S2a nach
+Autorenabschluss unabhängig prüfen. [Arbeitsplan](ARBEITSPLAN.md),
+[Einrichtung](../EINRICHTUNG.md). Zentrale Statusdateien gehören dem Lead.
