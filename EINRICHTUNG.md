@@ -77,6 +77,9 @@ diese Wurzeln ersetzen nur für diese Verbindung das Standardvertrauen. Host und
 Zertifikat müssen zusammenpassen. Es gibt keinen unsicheren TLS-Fallback und
 keine Änderung von Keychain/Systemtruststore. „Verbinden“ prüft den Katalog und
 leert danach das Passwortfeld; interne Einstellungen bleiben nur im Arbeitsspeicher.
+Für LAN-Ziele kann das Betriebssystem einen lokalen Netzwerkdialog zeigen; die
+App enthält dafür eine deutsche Zweckbeschreibung. Ein fehlendes/abgelehntes
+OS-Recht wird nicht umgangen und ist kein bestandener Geräte-/UI-Nachweis.
 Vor Änderungen der Verbindungsfelder die aktiven Einstellungen verwerfen. Ein
 Quellenwechsel leert Katalog/Ergebnis und Schreibfreigabe. Keine Secrets protokollieren
 oder in echten SQL-Literalen als Verbindungstest verwenden.

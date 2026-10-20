@@ -114,7 +114,10 @@ kein ungeprüftes Deuten binärer Extensiontypen als Text.
 
 macOS14/iPadOS17 bleiben Deploymentziele. Entwicklung benötigt nun Swift6.2/Xcode26.3
 oder neuer; lokaler tatsächlicher Stand Swift6.4/Xcode27.1. Geräte, signierte Sandbox,
-Distribution und interaktive OS-UI bleiben getrennte Gates. Native MySQL/MariaDB-
+Distribution und interaktive OS-UI bleiben getrennte Gates. Die generierte Info.plist
+enthält eine deutsche `NSLocalNetworkUsageDescription` für bewusst gewählte LAN-
+Ziele. Das ist eine Zweckdeklaration, keine erteilte OS-Berechtigung oder erfolgreich
+geprüfter Systemdialog. Native MySQL/MariaDB-
 Adapter, SSH, HTTP-Backend, Tresor, iCloud und Teams gehören nicht zu A2.
 
 ## Konkrete Primärquellen (Abruf 20.10.2026)
@@ -128,4 +131,5 @@ Adapter, SSH, HTTP-Backend, Tresor, iCloud und Teams gehören nicht zu A2.
 - [PostgreSQL: Transaktionslesemodus](https://www.postgresql.org/docs/18/sql-set-transaction.html)
 - [PostgreSQL: Extended Query und Abbruch](https://www.postgresql.org/docs/18/protocol-flow.html)
 - [PostgreSQL: Signalisierungsrechte](https://www.postgresql.org/docs/18/functions-admin.html#FUNCTIONS-ADMIN-SIGNAL)
+- [Apple: lokale Netzwerkprivatsphäre und Zweckbeschreibung](https://developer.apple.com/documentation/technotes/tn3179-understanding-local-network-privacy)
 - [PostgreSQL: Numeric-Wireformat, numeric_send/recv](https://github.com/postgres/postgres/blob/REL_18_STABLE/src/backend/utils/adt/numeric.c)
