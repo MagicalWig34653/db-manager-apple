@@ -6,6 +6,7 @@ check_dir=$(mktemp -d /tmp/dbmanager-apple-check.XXXXXX)
 trap 'rm -rf "$check_dir"' EXIT HUP INT TERM
 python3 scripts/check-dependencies.py
 swift test --force-resolved-versions --scratch-path "$check_dir/swift" -j 4
+python3 scripts/check-calendar-vectors.py
 python3 scripts/check-dependencies.py --checkouts "$check_dir/swift/checkouts"
 for platform in macOS 'iOS Simulator'; do
   if ! xcodebuild -project DBManager.xcodeproj -scheme DBManager \

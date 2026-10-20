@@ -92,7 +92,13 @@ werden in einer Transaktion committed. VACUUM/CREATE DATABASE und andere außerh
 von Transaktionsblöcken nötige Befehle sind kein zugesicherter Umfang.
 
 NULL, Leertext/-blob, Binärbytes/Base64, Int64, Numeric40,20, Boolean und Zeitwerte
-werden getrennt erhalten. Unbekannte PostgreSQL-Typen bleiben verlustfreie Binärbytes
+werden getrennt erhalten.
+Zeitwerte verwenden den proleptisch-gregorianischen Kalender, sechs exakte
+Mikrosekundenstellen und bei BC den ausdrücklichen Suffix ` BC`; timestamptz wird
+als UTC mit Z dargestellt. ±infinity und große Jahreszahlen bleiben sichtbar.
+Der unabhängige Kalendervergleich ist auch einzeln mit
+`python3 scripts/check-calendar-vectors.py` ausführbar.
+Unbekannte PostgreSQL-Typen bleiben verlustfreie Binärbytes
 mit OID; kein vollständiger Editor für alle Extensiontypen. Bytegrenzen gelten
 für Rohzellen und encodierte Ergebnisdarstellung. Größenfehler liefern kein
 Teilergebnis, Zeilenkürzung bleibt sichtbar. `rows_affected` wird für diesen
