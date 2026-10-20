@@ -31,3 +31,16 @@ Kein Netzwerkadapter, optionaler Backendclient, Tresor, Passkey oder CloudKit-Sy
 Keine echten Zugangsdaten persistiert. Eigener Code AGPL-3.0-only; Systembibliotheken
 behalten ihre Lizenzen. Nächste Produktpakete nach gemeinsamer Planung und Review.
 [Handoff A1](handoffs/A1.md), [Arbeitsplan](ARBEITSPLAN.md), [Einrichtung](../EINRICHTUNG.md).
+
+## Aktiver Auftrag A2
+
+Apple-Engineer arbeitet auf `feat/apple-postgres` in `.worktrees/apple-postgres`,
+Basis `ce0aedb`. Direkter PostgreSQL-Pfad ohne Go: verpflichtend verifiziertes TLS,
+flüchtige Zugangsdaten, Katalog/Einzelstatement und begrenzte verlustarme Ergebnisse.
+SQLitebetrieb bleibt erhalten. Besitz Produktmodule/SwiftUI, Package/Lock/Xcode,
+eigene Prüfungen/CI/Lizenzen/ADR/Einrichtung/Handoff; zentrale Status-/Planungsdateien
+pflegt Lead. Kein SSH, nativer MySQL-/MariaDB-Pfad, Tresor oder CloudKit in A2.
+Noch keine Implementierungs-/Review-/Gerätefreigabe. Handoff folgt mit dem Paket.
+
+Gemeinsames S1-Tresorformat im Hauptrepo unabhängig als Formatgrundlage abgenommen
+(ADR0005); produktive Persistenz S2 bleibt gesondert ungeprüft.
