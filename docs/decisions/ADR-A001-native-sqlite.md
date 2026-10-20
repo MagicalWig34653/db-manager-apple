@@ -1,6 +1,7 @@
 # ADR-A001: Erste native SQLite-Grundlage
 
-Status: Implementierungsvorschlag A1 zur unabhängigen Abnahme, 20.10.2026.
+Status: als begrenzte Entwicklungsgrundlage nach unabhängiger QA akzeptiert, 20.10.2026.
+macOS14/iPadOS17 sind Deployment-Arbeitsziele, keine belegte Altgeräte-/Distributionsfreigabe.
 
 ## Kontext
 
@@ -10,7 +11,7 @@ belegt SystemSQLite3-Proben und empfiehlt zunächst macOS 14/iPadOS 17. Sichere
 MySQLNIO-Netzwerkfreigabe ist wegen des dort bestätigten TLS-Downgradebefunds offen.
 Native PRF-/iCloud-Entscheidungen gehören nicht zu dieser ersten Stufe.
 
-## Vorschlag und tatsächliche Umsetzung
+## Entscheidung und tatsächliche Umsetzung
 
 SystemSQLite3 aus dem Apple-SDK, Swift-Actor für die Verbindung und native SwiftUI-
 Oberfläche. macOS 14/iPadOS 17 sind begründete erste Arbeitsziele: `@Observable`,
