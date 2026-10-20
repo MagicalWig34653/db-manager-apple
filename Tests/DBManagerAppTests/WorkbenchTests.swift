@@ -74,3 +74,58 @@ import SwiftUI
     await #expect(throws: DatabaseError.notOpen) { try await model.database.execute("SELECT 1") }
     #expect(try Data(contentsOf: corrupt) == Data("synthetic non-SQLite content".utf8))
 }
+
+@MainActor
+@Test func sourceSwitchAndFailedPostgresOpenClearActiveStateAndDraftPassword() async throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let model = WorkbenchModel(localRoot: directory)
+    model.createLocal(); await model.operation?.value
+    model.allowWrites = true; model.sql = "CREATE TABLE old_source(value)"
+    model.execute(); await model.operation?.value
+    #expect(model.objects.count == 1)
+    model.password = "synthetic-old-password"
+    model.changeSource(.postgres)
+    #expect(model.fileName == nil && model.objects.isEmpty && model.result == nil && !model.allowWrites && model.password.isEmpty)
+    await model.operation?.value
+    model.host = "invalid/path"; model.databaseName = "synthetic"; model.username = "synthetic"; model.password = "synthetic-draft"
+    model.connectPostgres()
+    #expect(model.password.isEmpty)
+    await model.operation?.value
+    #expect(model.error != nil && model.fileName == nil && model.objects.isEmpty && model.result == nil)
+    await #expect(throws: DatabaseError.notOpen) { try await model.database.execute("SELECT 1") }
+    await #expect(throws: DatabaseError.notOpen) { try await model.postgres.execute("SELECT 1") }
+    model.changeSource(.sqlite); await model.operation?.value
+    model.createLocal(); await model.operation?.value
+    #expect(model.fileName != nil && model.error == nil)
+    model.close(); await model.operation?.value
+}
+
+@MainActor
+@Test(.enabled(if: ProcessInfo.processInfo.environment["DBM_A2_TLS_PORT"] != nil))
+func liveWorkbenchUsesDirectPostgresThenClearsFailedReplacement() async throws {
+    let env = ProcessInfo.processInfo.environment
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let model = WorkbenchModel(localRoot: directory)
+    model.changeSource(.postgres); await model.operation?.value
+    model.host = "localhost"; model.port = try #require(env["DBM_A2_TLS_PORT"])
+    model.databaseName = "probe"; model.username = "native_app"; model.password = "public-a2-fixture"
+    let ca = try #require(env["DBM_A2_CA_FILE"])
+    model.selectCA(URL(fileURLWithPath: ca))
+    model.connectPostgres(); await model.operation?.value
+    #expect(model.error == nil && model.fileName != nil && model.password.isEmpty && model.objects.contains { $0.name == "synthetic_values" })
+    model.sql = "SELECT amount FROM synthetic_values"
+    model.execute(); await model.operation?.value
+    #expect(model.result?.rows[0][0] == Cell(kind: .decimal, value: "12345678901234567890.12345678901234567890"))
+    model.port = "0"; model.password = "synthetic-invalid"
+    model.connectPostgres()
+    #expect(model.fileName == nil && model.objects.isEmpty && model.result == nil && !model.allowWrites && model.password.isEmpty)
+    await model.operation?.value
+    #expect(model.error != nil && model.fileName == nil && model.objects.isEmpty && model.result == nil)
+    await #expect(throws: DatabaseError.notOpen) { try await model.postgres.execute("SELECT 1") }
+    model.changeSource(.sqlite); await model.operation?.value
+    model.createLocal(); await model.operation?.value
+    #expect(model.fileName != nil && model.error == nil)
+    model.close(); await model.operation?.value
+}
