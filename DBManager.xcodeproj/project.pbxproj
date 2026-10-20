@@ -1,0 +1,27 @@
+// !$*UTF8*$!
+{
+ archiveVersion = 1;
+ classes = {};
+ objectVersion = 60;
+ objects = {
+  A10000000000000000000001 = {isa = PBXProject; attributes = {LastUpgradeCheck = 2710;}; buildConfigurationList = A10000000000000000000002; compatibilityVersion = "Xcode 15.0"; developmentRegion = de; knownRegions = (de, en, Base); mainGroup = A10000000000000000000003; packageReferences = (A10000000000000000000020); productRefGroup = A10000000000000000000004; projectDirPath = ""; projectRoot = ""; targets = (A10000000000000000000005);};
+  A10000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (A10000000000000000000010, A10000000000000000000011); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+  A10000000000000000000003 = {isa = PBXGroup; children = (A10000000000000000000006, A10000000000000000000004); sourceTree = "<group>";};
+  A10000000000000000000004 = {isa = PBXGroup; children = (A10000000000000000000007); name = Products; sourceTree = "<group>";};
+  A10000000000000000000005 = {isa = PBXNativeTarget; buildConfigurationList = A10000000000000000000012; buildPhases = (A10000000000000000000008, A10000000000000000000009); buildRules = (); dependencies = (); name = DBManager; packageProductDependencies = (A10000000000000000000021); productName = DBManager; productReference = A10000000000000000000007; productType = "com.apple.product-type.application";};
+  A10000000000000000000006 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/DBManagerApp/DBManagerApp.swift; sourceTree = "<group>";};
+  A10000000000000000000007 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DBManager.app; sourceTree = BUILT_PRODUCTS_DIR;};
+  A10000000000000000000008 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000015); runOnlyForDeploymentPostprocessing = 0;};
+  A10000000000000000000009 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000022); runOnlyForDeploymentPostprocessing = 0;};
+  A10000000000000000000010 = {isa = XCBuildConfiguration; buildSettings = {SWIFT_VERSION = 6.0; ONLY_ACTIVE_ARCH = YES; ALWAYS_SEARCH_USER_PATHS = NO;}; name = Debug;};
+  A10000000000000000000011 = {isa = XCBuildConfiguration; buildSettings = {SWIFT_VERSION = 6.0; ALWAYS_SEARCH_USER_PATHS = NO;}; name = Release;};
+  A10000000000000000000012 = {isa = XCConfigurationList; buildConfigurations = (A10000000000000000000013, A10000000000000000000014); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+  A10000000000000000000013 = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; "CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = Sources/DBManagerApp/DBManager.entitlements; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "DB Manager"; INFOPLIST_KEY_UILaunchScreen_Generation = YES; INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = org.dbmanager.workbench; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = auto; SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 2; ENABLE_HARDENED_RUNTIME = YES; SWIFT_OPTIMIZATION_LEVEL = "-Onone";}; name = Debug;};
+  A10000000000000000000014 = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; "CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = Sources/DBManagerApp/DBManager.entitlements; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "DB Manager"; INFOPLIST_KEY_UILaunchScreen_Generation = YES; INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = org.dbmanager.workbench; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = auto; SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 2; ENABLE_HARDENED_RUNTIME = YES; SWIFT_OPTIMIZATION_LEVEL = "-O";}; name = Release;};
+  A10000000000000000000015 = {isa = PBXBuildFile; fileRef = A10000000000000000000006;};
+  A10000000000000000000020 = {isa = XCLocalSwiftPackageReference; relativePath = .;};
+  A10000000000000000000021 = {isa = XCSwiftPackageProductDependency; package = A10000000000000000000020; productName = DBManagerCore;};
+  A10000000000000000000022 = {isa = PBXBuildFile; productRef = A10000000000000000000021;};
+ };
+ rootObject = A10000000000000000000001;
+}
