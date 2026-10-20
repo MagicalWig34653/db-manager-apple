@@ -36,9 +36,9 @@ diese Gleichheit und sämtliche aufgenommenen Originaltexte.
 | --- | --- | --- |
 | `postgres-nio` | `1.33.1` | MIT |
 | `swift-asn1` | `1.7.3` | Apache-2.0 (Originalnotices beachten) |
-| `swift-async-algorithms` | `1.1.3` | Apache-2.0 (Originalnotices beachten) |
-| `swift-atomics` | `1.3.1` | Apache-2.0 (Originalnotices beachten) |
-| `swift-collections` | `1.2.1` | Apache-2.0 (Originalnotices beachten) |
+| `swift-async-algorithms` | `1.1.3` | Apache-2.0 mit Swift Runtime Library Exception |
+| `swift-atomics` | `1.3.1` | Apache-2.0 mit Swift Runtime Library Exception |
+| `swift-collections` | `1.2.1` | Apache-2.0 mit Swift Runtime Library Exception |
 | `swift-crypto` | `4.5.2` | Apache-2.0 (Originalnotices beachten) |
 | `swift-log` | `1.16.1` | Apache-2.0 (Originalnotices beachten) |
 | `swift-metrics` | `2.12.0` | Apache-2.0 (Originalnotices beachten) |
@@ -46,7 +46,7 @@ diese Gleichheit und sämtliche aufgenommenen Originaltexte.
 | `swift-nio-ssl` | `Revision 15e0b9e495786807272dd4891fa4bac76aa43034` | Apache-2.0 (Originalnotices beachten) |
 | `swift-nio-transport-services` | `1.28.0` | Apache-2.0 (Originalnotices beachten) |
 | `swift-service-lifecycle` | `2.13.0` | Apache-2.0 (Originalnotices beachten) |
-| `swift-system` | `1.8.1` | Apache-2.0 (Originalnotices beachten) |
+| `swift-system` | `1.8.1` | Apache-2.0 mit Swift Runtime Library Exception |
 
 NIOssl enthält eine eigene vendorte BoringSSL-Kopie; SwiftCrypto eine weitere.
 Diese Anteile sind nicht aus einem pauschalen Rootlizenz-Eintrag abgeleitet:

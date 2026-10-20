@@ -4,6 +4,7 @@
 import argparse
 import hashlib
 import json
+import plistlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -47,6 +48,9 @@ def main():
     if args.products:
         apps = list(args.products.rglob('DBManager.app'))
         assert len(apps) == 1, 'Expected one built app'
+        plist_path = apps[0]/'Contents/Info.plist' if (apps[0]/'Contents').exists() else apps[0]/'Info.plist'
+        info = plistlib.loads(plist_path.read_bytes())
+        assert info.get('NSLocalNetworkUsageDescription', '').startswith('DB Manager verbindet sich'), 'LAN purpose description missing'
         inventories = list(apps[0].rglob('ThirdParty/inventory.json'))
         assert len(inventories) == 1, 'App original notices missing or ambiguous'
         bundled = inventories[0].parent
