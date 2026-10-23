@@ -28,4 +28,4 @@ Exportcompliance: `ITSAppUsesNonExemptEncryption = YES` (Standardverschlüsselun
 TLS über BoringSSL, SwiftCrypto); Eigentümer wählte in App Store Connect
 „Standardmäßige Verschlüsselungsalgorithmen“. Rechtliche Ausfuhrerklärung beim
 Eigentümer. Jeder weitere Upload braucht eine höhere Buildnummer.
-[Details](../docs/handoffs/A-TF2.md).
+[Details](../docs/handoffs/A-TF2-compliance.md).
