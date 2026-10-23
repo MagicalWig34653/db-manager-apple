@@ -11,7 +11,8 @@ Hauptrepo-Statuspflege liegt beim dort beauftragten Agent.
 | P0 | Eigenständiges öffentliches Repo, Lizenz und Agent-Einstieg | abgeschlossen |
 | A1 | Eigenständiger nativer SQLite-/SwiftUI-Arbeitsplatz | nach QA und CI integriert; zehn Tests, Mac-/Simulatorbuild, Lifecyclefix geschlossen |
 | A2 | Direkter PostgreSQL-Pfad ohne Go, SQLite erhalten | Quellen89b2683/abaa3dc/b72e62c nach unabhängigem Review und exakter grüner CI integriert als fdd533e/cd5d886/031b1e8; Kalenderbefund geschlossen, konkreter NIOssl-Pin akzeptiert. Leadintegrationsprüfung bestanden; Main-CI39505094304 auf7e97aae erfolgreich; unabhängiger Review als A2-review dauerhaft gesichert. |
-| S2a | Eigenständiger Vault-Core ohne Appverdrahtung | Nach unabhängigem Review ohne Findings als isolierter Core abgenommen; vollständige Historie mit Originalpins übernommen, kombinierte Vault-/A2-Appchecks grün; Main-Vault39903661136/Docs39903661079 bestanden, Apple39903661074 um05:15UTC noch aktiv. Keine produktive Persistenzfreigabe |
+| S2a | Eigenständiger Vault-Core ohne Appverdrahtung | Nach unabhängigem Review ohne Findings als isolierter Core abgenommen; vollständige Historie mit Originalpins übernommen, kombinierte Vault-/A2-Appchecks grün; Main-Vault39903661136/Docs39903661079 bestanden, Apple39903661074 ebenfalls tatsächlich erfolgreich. Keine produktive Persistenzfreigabe |
+| A-TF1 | Bundle-ID und TestFlightvorbereitung | eigener Kandidat release/testflight-preparation: de.linolaske.dbmanager explizit registriert, signierte iPad-/Universal-Macarchive und lokale App-Store-Exports bestanden; echtes editierbares Composericon, kein Upload. Review/CI/Betreiberauskünfte offen |
 | S2b | Produktiver Anchor und App-/Recoveryablauf | isoliertes Gate G-S2b durchgeführt: SecItemAdd=-34018 bei eigenem ad-hoc-Host ohne Team-ID; keine Itemanlage, CAS/Lock/Unsicherheit ungeprüft. Separater Probebranch4953399; produktiver Anchor und Appsecretpersistenz gesperrt |
 
 S2a-Dateibesitz: nur neues Packages/DBManagerVault samt Tests/Fixtures/Originaltexten/
@@ -41,3 +42,22 @@ beim S2a-Agent. Reviewnachweise werden getrennt von ungeprüftem Core integriert
 Alte saubere A1-/A2-Worktrees bleiben Provenienz. Nur eigene kurzlebige Testressourcen,
 keine fremden Container/Geräte oder OS-Rechte ändern. Echte Geräte/Signing/alte OS/
 interaktive OS-UI ausdrücklich offen. Jobs vor Kontextwechsel im Handoff erfassen.
+
+## A-TF1: offenes CI-Hostgate
+
+Native CI39906842616 ist fehlgeschlagen; die schnelle unveränderte echte
+Iconvorprüfung39908555341 reproduziert AssetCatalogAgent-Runtimeabbruch und
+fehlende CoreMedia-/MediaToolbox-Symbole auf macOS15/Xcode26.3. Kontrollierter
+Hostwechsel auf macos-26 behält Xcode26.3 und sämtliche Produkt-/Icon-/Paketbytes
+sowie Mac-/iPad-Prüfungen bei; neuer tatsächlicher Erfolg bleibt abzuwarten.
+Fachreview59c7004 und vorhandene signierte Archive/Exporte bleiben Provenienz,
+keine Upload-/Einreichungsaktion oder vorweggenommene neue CI-Freigabe.
+
+### A-TF1: tatsächlicher Hostfix-Abschluss
+
+Exakter Korrekturcommit645c8c1: Apple39908768321, Vault39908768308 und
+Docs39908768380 sind inzwischen success. Derselbe Xcode26.3 auf macos-26
+kompiliert echte Composericons und beide Appziele; App-/Icon-/Paketbytes und
+vorhandene signierte Exporte unverändert. Frühere Fehler bleiben historische
+Befunde. Enger unabhängiger CI-Diffreview und Mainintegration stehen noch aus;
+keine Upload-/Store-/Gerätefreigabe. Details und Einschränkungen im A-TF1-Handoff.

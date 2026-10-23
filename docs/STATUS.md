@@ -60,7 +60,7 @@ Keine erneute tatsächliche PostgreSQL-Liveprüfung oder Gerätelaufzeit behaupt
 Exakter veröffentlichter Integrationsstand d0dea67: [Vault39903661136](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39903661136)
 und [Docs39903661079](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39903661079)
 bestanden. [Apple39903661074](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39903661074)
-am Checkpoint05:15UTC noch aktiv; kein vorweggenommener Erfolg.
+inzwischen tatsächlich completed/success; alle drei kombinierten Main-CIs bestanden.
 
 Der Anker ist eine zwingende externe Vertrauensannahme, kein produktiver
 InMemory-/Dateifallback. Reservierungen vor Verschlüsselung, CAS/Pending/Rootbudget,
@@ -85,6 +85,37 @@ HTTP-Backendclient, produktiver Tresor, Passkey, CloudKit-Sync oder Teamumfang.
 Abbruch garantiert keinen Rollback, READ ONLY keine vollständige DB-Sandbox.
 Eigener Code AGPL-3.0-only, Abhängigkeiten behalten ihre Original-Lizenzen.
 
-Nächster Schritt: laufende S2a-Apple-CI kontrollieren; A3-Ergebnisexport zunächst
-als gemeinsamen Root-/Web-/Apple-Vertragsvorschlag abstimmen. [Arbeitsplan](ARBEITSPLAN.md),
+## Dringende TestFlightvorbereitung A-TF1
+
+Separater Prüfkandidat, noch nicht integriert: einheitlich de.linolaske.dbmanager,
+Team J2DU2P47XW, Version0.1.0/Build1. Explizite Portalregistrierung durch tatsächliche
+Distributionsprofile in erfolgreichen lokalen iPad-/Mac-App-Store-Exports belegt.
+Der Nutzer kann den ASC-Apprecord mit dieser Bundle-ID anlegen. Signierte
+Releasearchive für iPad und Universal-Mac, tatsächliche Originalnotices/Iconfallbacks
+und PrivacyInfo geprüft. Eigenes editierbares zweilagiges Icon-Composer-Projekt mit
+tatsächlichen Renderer-/Actoolnachweisen. Kein Upload oder Einreichen.
+[Handoff](handoffs/A-TF1.md). Exportauskunft des Eigentümers, Storemetadaten,
+unabhängiger Review und finale öffentliche Apple-CI vor Integration offen.
+
+Nächster Schritt: A-TF1 unabhängig prüfen; A3/C-Export1 bleibt zugunsten Pages
+und TestFlight ausdrücklich aufgeschobener Vorschlag ohne Implementierung. [Arbeitsplan](ARBEITSPLAN.md),
 [Einrichtung](../EINRICHTUNG.md). Apple-Statuspflege ist für dieses Fortsetzungsfenster an den S2a-Agent delegiert.
+
+## A-TF1: offenes CI-Hostgate
+
+Native CI39906842616 ist fehlgeschlagen; die schnelle unveränderte echte
+Iconvorprüfung39908555341 reproduziert AssetCatalogAgent-Runtimeabbruch und
+fehlende CoreMedia-/MediaToolbox-Symbole auf macOS15/Xcode26.3. Kontrollierter
+Hostwechsel auf macos-26 behält Xcode26.3 und sämtliche Produkt-/Icon-/Paketbytes
+sowie Mac-/iPad-Prüfungen bei; neuer tatsächlicher Erfolg bleibt abzuwarten.
+Fachreview59c7004 und vorhandene signierte Archive/Exporte bleiben Provenienz,
+keine Upload-/Einreichungsaktion oder vorweggenommene neue CI-Freigabe.
+
+### A-TF1: tatsächlicher Hostfix-Abschluss
+
+Exakter Korrekturcommit645c8c1: Apple39908768321, Vault39908768308 und
+Docs39908768380 sind inzwischen success. Derselbe Xcode26.3 auf macos-26
+kompiliert echte Composericons und beide Appziele; App-/Icon-/Paketbytes und
+vorhandene signierte Exporte unverändert. Frühere Fehler bleiben historische
+Befunde. Enger unabhängiger CI-Diffreview und Mainintegration stehen noch aus;
+keine Upload-/Store-/Gerätefreigabe. Details und Einschränkungen im A-TF1-Handoff.

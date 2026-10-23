@@ -1,0 +1,36 @@
+{
+  "fill": {
+    "automatic-gradient": "extended-srgb:0.025,0.12,0.22,1"
+  },
+  "groups": [
+    {
+      "name": "02 Table",
+      "layers": [
+        {
+          "image-name": "02-grid.svg",
+          "name": "Table"
+        }
+      ],
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    },
+    {
+      "name": "01 Database",
+      "layers": [
+        {
+          "image-name": "01-database.svg",
+          "name": "Database"
+        }
+      ],
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}
