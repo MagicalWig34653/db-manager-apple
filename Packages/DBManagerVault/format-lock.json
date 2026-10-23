@@ -1,7 +1,7 @@
 {
   "repository": "https://github.com/MagicalWig34653/db-manager",
-  "format_commit": "1a4eb3c",
-  "handoff_commit": "03bd3f4",
+  "format_commit": "1a4eb3c78d22b2fc264b3bce57128d69584735ba",
+  "handoff_commit": "03bd3f40e436efe44dbbdcbbcbb6245e285ad4bf",
   "schema_sha256": "b688656056fe2e23848ce17149bc817609c7369f230a3f49dd91f05db4d3f4dd",
   "sha256": {
     "Format/LICENSE": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
