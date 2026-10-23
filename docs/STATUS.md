@@ -1,121 +1,99 @@
-# Status
+# Tatsächlicher Apple-Stand
 
-Stand: 23.10.2026. Einziger autorisierter Fortsetzungsrahmen: bis heute
-10:00 Europe/Berlin (=08:00 UTC), Agents implementieren und prüfen; Root koordiniert.
+Stand: 23.10.2026, A-TF1-Integrationscheckpoint. Neuer ausdrücklicher Nutzerabschluss:
+erster Build auf TestFlight, Pages live sowie vollständige Doku-/Claude-Code-Übergabe.
+Root koordiniert ausschließlich; Agents übernehmen die freigegebenen Schritte.
+Offene Gesamtproduktfunktionen werden nicht als fertig behauptet.
 
- A1 und A2 nach unabhängiger QA und exakter erfolgreicher CI
-im Apple-main integriert. Eigenständiger nativer SwiftUI-Arbeitsplatz ohne Go.
-Lokales SQLite und direktes PostgreSQL: Katalog, Einzelstatement, ausdrückliche
-Schreibfreigabe, begrenzte typisierte Ergebnisse und Abbruch. Zugangsdaten nur im
-Arbeitsspeicher; keine vollständige Datenbankverwaltung oder Credentialpersistenz.
+## Integrierter Produktumfang
 
-## Nachweise und Entscheidungen
+Eigenständiger SwiftUI-Arbeitsplatz ohne Go: ausgewählte lokale SQLite-Dateien und
+direktes PostgreSQL mit verpflichtendem verifiziertem TLS, Katalog/Einzelstatement,
+ausdrücklicher Schreibfreigabe, begrenzten getaggten Ergebnissen und Abbruch.
+Credentials nur im Arbeitsspeicher, kein produktiver Geheimnisspeicher.
 
-- A1: zehn Swift-Tests, Mac-/generischer iPad-Simulator-Build und unabhängige
-  Sicherheits-/Lifecycleprüfungen bestanden; Dateiwechselfix geschlossen.
-  Integration `8ea3c7c`/`ec3bbe9`/`4404f91`. [Handoff A1](handoffs/A1.md).
-- A2: Quellen `89b2683`/`abaa3dc`/`b72e62c`, integriert als
-  `fdd533e`/`cd5d886`/`031b1e8`. Direkte PostgresNIO-Verbindung mit verpflichtendem
-  verify-full-TLS, separatem ebenfalls verifiziertem und an eigene Sessionidentität
-  gebundenem Abbruchkanal. Readonly durch DB-Transaktion und vorherigen eigenen
-  SELECT, begrenztes Streaming, genaue Decimal-/Integer-/Kalenderdarstellung.
-- Vollständiger unabhängiger A2-Review und gesonderte Fixnachprüfung bestanden.
-  QA-A2-01 verfälschte historische proleptische Daten und BC/AD; Fix unabhängig
-  mit 1.008 Datum-/4.032 Timestampvektoren sowie drei echten TLS-PG-Kalenderfällen
-  bestätigt. Keine offenen bestätigten A2-Befunde. [Handoff A2](handoffs/A2.md),
-  [dauerhaft gesicherter unabhängiger Review](handoffs/A2-review.md).
-- Autorenprüfung: 17 Kern-/5 Appprüfungen mit drei echten TLS-/Negativfixtures
-  aktiv bestanden, zusätzliche frische Mac-/iPad-Builds einschließlich Originaltexte
-  und Info.plist. Ohne Fixtureumgebung überspringt Standardswifttest sechs Livetests;
-  das ist kein zusätzlicher Live-Nachweis.
-- [Apple-CI am exakten letzten Fix](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39503396485)
-  und [Dokumentations-CI](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39503396416)
-  erfolgreich. Beide früheren A2-CI-Paare ebenfalls erfolgreich. [Kombinierte Main-CI auf 7e97aae](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39505094304)
-  inzwischen tatsächlich erfolgreich, exakten Commit und Ergebnis erneut geprüft. Lokale Leadintegration bestanden:
-  Swift-Testlauf mit ausdrücklich sechs übersprungenen Livetests, 1.008/4.032
-  Kalendervektoren, 13 Pins/Originalnotices einschließlich tatsächlicher Checkouts
-  und Dokumentation74/0. Kein neuer Live-/Geräte- oder Appbuildnachweis daraus.
-- [ADR-A002](decisions/ADR-A002-direct-postgres.md) akzeptiert den konkreten
-  unveröffentlichten offiziellen NIOssl-Revisionspin mit belegtem Apache-BoringSSL-
-  Originaltext. 13 gepinnte Abhängigkeiten, identische SwiftPM-/Xcode-Locks und
-  Originalnotices im Appbundle; fehlendes Release-Tag bleibt Wartungsrisiko.
+A1/A2 und isolierter S2a-Core sind nach unabhängigen Reviews integriert. Der Core
+ist nicht in die App eingebunden; produktiver Anchor und Recovery-/Speicherablauf
+bleiben gesonderte Gates. [A1](handoffs/A1.md), [A2](handoffs/A2.md),
+[A2-Review](handoffs/A2-review.md), [S2a](handoffs/S2a.md),
+[S2a-Review](handoffs/S2a-review.md), [ADR-A003](decisions/ADR-A003-vault-core.md).
 
-## Eigenständiger Tresorkern S2a
+## A-TF1 – technisch vorbereitete Distribution
 
-Nach unabhängigem [Core-/Securityreview](handoffs/S2a-review.md) ohne offene
-Findings als **isoliertes Core-Inkrement** zur Integration abgenommen. Kein
-produktiver Anchor, keine App-/Credentialpersistenzfreigabe. [Paketvertrag und
-Originaltexte](../Packages/DBManagerVault/README.md), [ADR-A003](decisions/ADR-A003-vault-core.md),
-[Autoren-/Integrationshandoff](handoffs/S2a.md). Gesamtes Paket bytegleich zum
-geprüften Stand8d6fa37 einschließlich Codebbbc4e6 übernommen; vorhandene App-,
-Root-Package-, Xcode- und A2-Produktdateien unverändert.
+Auf konkrete Leadfreigabe integriert: Feature bis6551a8a mit akzeptiertem
+Sourcepin645c8c1b2dbd401410cdaf42afc0b221770f322e als7f5282e; unabhängiger
+Erst-/CI-Nachreview bis7e6619e5d071ed7afdcd7d7ccaa11e3a81190099 als9a15581.
+Volle Feature-/Reviewprovenienz erhalten, App-/Icon-/Xcode-/Sources-/Package-/
+Distributionbytes gegenüber dem bereits geprüften b702051 unverändert.
+[Autorenhandoff](handoffs/A-TF1.md), [unabhängiger Review](handoffs/A-TF1-review.md),
+[Releasecheckpoint](handoffs/A-TF1-integration.md), [Vorbereitung](../Distribution/README.md).
 
-Kombinierte lokale Releaseprüfung bestanden: 16 Vaulttests, sechs echte abrupte
-Prozessabbrüche, iPad-Simulator-Zielcompile, Format-/Fixture-/14-Argon2hashes.
-Zusätzlich bestehende A2-App mit17 Kern-/5 Appprüfungen (sechs Livetests ohne
-Fixtures ausdrücklich übersprungen), 1.008 Datum-/4.032 Timestampvektoren,
-13 Abhängigkeitspins/Originalnotices, macOS-/iPad-Appbuild einschließlich
-Originaltexte und Info.plist; Dokumentation125/0 am geprüften Integrationsbaum.
-Keine erneute tatsächliche PostgreSQL-Liveprüfung oder Gerätelaufzeit behauptet.
-Exakter veröffentlichter Integrationsstand d0dea67: [Vault39903661136](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39903661136)
-und [Docs39903661079](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39903661079)
-bestanden. [Apple39903661074](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39903661074)
-inzwischen tatsächlich completed/success; alle drei kombinierten Main-CIs bestanden.
+- Bundle-ID **de.linolaske.dbmanager**, Version **0.1.0**, Build **1**.
+  Explizite Apple-Distributionsprofile statt Wildcard tatsächlich belegt.
+- Eigentümer hat den ASC-Eintrag „DB Manager“ angelegt und wurde zum Fortsetzen
+  benachrichtigt. Keine separate ASC-API-/Browserprüfung des Eintrags behauptet.
+- Signierte iPad-/Universal-Macarchive und lokale App-Store-Exporte IPA/PKG
+  tatsächlich erfolgreich; strikte Signaturen, Profile, Entitlements, Versionen,
+  Privacy/Icons und13 Originalnotice-/Abhängigkeitspins unabhängig geprüft.
+- Eigenes echtes editierbares [Icon-Composer-Projekt](../Assets/AppIcon.icon/icon.json)
+  mit zwei SVG-Layern, echte ictool-Vorschauen und kompilierte ältere-OS-Fallbacks.
+  Keine GUI-/Accessibility-/ScreenRecordingrechte verändert.
+- Beide finalen Exporte und zugehörigen Archive zusätzlich dauerhaft privat im
+  lokalen Developerbereich gesichert; Datei-SHA256 und vollständige Archivbäume
+  vor/nach Kopie gleich, keine bestehenden abweichenden Dateien überschrieben.
+  Private lokale Receipt/README vorhanden, genaue Pfade nur an Eigentümer/Koordination.
+  Keine Profile, Schlüssel, Archive oder Exportdateien im Git-/Releaseassetsbaum.
 
-Der Anker ist eine zwingende externe Vertrauensannahme, kein produktiver
-InMemory-/Dateifallback. Reservierungen vor Verschlüsselung, CAS/Pending/Rootbudget,
-private POSIX-Modi und Hash-Rücklesen sind geprüft; keine Hardwaremonotonie,
-ACL-/Sandbox-/FileProtection-/Restorefreigabe. Spätere S2b-App-/Ankerschritte
-benötigen gesonderte Plattformprobe und unabhängige Abnahme. Die ausdrücklich beauftragte isolierte Plattformprobe G-S2b ist abgeschlossen:
-SecItemAdd=-34018/errSecMissingEntitlement, eigener ad-hoc-Host ohne Team-ID.
-Keine Itemanlage, keine Dialoge oder Fallbacks; CAS-/OS-Lock-/Unsicherheitsbeweise
-offen. [Separater ungeprüfter Probebranch4953399](https://github.com/MagicalWig34653/db-manager-apple/tree/4953399de0c4b04800a26ab70f8b811a1224a1c7/spikes/keychain-anchor-gate)
-enthält Befund/Quellen/Repro; keine Integration oder produktive Ankerfreigabe.
-Keine Appsecretpersistierung; weitere Providerschichten erst nach geeignetem
-signierten/provisionierten Host und unabhängigen positiven Plattformbelegen.
+**Bisher kein Upload, keine Einreichung, keine TestFlight-/App-Store-Verfügbarkeit.**
+Der Nutzer hat inzwischen den ersten TestFlight-Upload ausdrücklich autorisiert;
+ein eigener Delivery-Agent übernimmt ihn, keine parallelen Uploads durch den
+Releasekoordinator. Kein App-Store-Release und keine öffentlichen externen
+Tester-Einladungen daraus. Betreiberangaben zu Verschlüsselung/Privacy und
+TestFlightmetadaten müssen zum tatsächlichen Produkt passen. ITSAppUsesNonExemptEncryption wurde nicht
+blind auf NO gesetzt; TLS/BoringSSL/SwiftCrypto und der nicht verknüpfte Vault-Core
+sind dokumentiert. PrivacyInfo-SystemBootTime-Reason35F9.1 passt zu lokalen Timern;
+DBkommunikation an Nutzerziele ist keine Zusage über deren serverseitige Logs.
 
-## Grenzen und Fortsetzung
+## Tatsächliche CI- und Integrationsnachweise
 
-macOS14/iPadOS17 sind Deploymentziele, keine nachgewiesenen alten Laufzeiten.
-Echte Geräte, Signing-/Sandboxdurchsetzung, Distribution und interaktiver OS-UI-Smoke
-bleiben offen. NSLocalNetworkUsageDescription ist Zweckdeklaration, keine erteilte
-Berechtigung. Keine fremden Geräte/Container oder Systemrechte verändert.
-Keine nativen MySQL-/MariaDB-Adapter wegen belegtem TLS-Downgrade, kein SSH,
-HTTP-Backendclient, produktiver Tresor, Passkey, CloudKit-Sync oder Teamumfang.
-Abbruch garantiert keinen Rollback, READ ONLY keine vollständige DB-Sandbox.
-Eigener Code AGPL-3.0-only, Abhängigkeiten behalten ihre Original-Lizenzen.
+Der erste Apple-Lauf39906842616 scheiterte am Icon-Assetruntime-Host. Diagnose
+belegte fehlende CoreMedia-/MediaToolbox-Symbole; kein JSON-/Layerfehler behauptet.
+Die kontrollierte Korrektur behält Xcode26.3/Swift6.2.4 sowie alle Prüfungen und
+Deploymentminima, verwendet aber macos-26 und zusätzliche direkte actool-Preflights.
+App-/Icon-/Paketbytes wurden dafür nicht verändert.
 
-## Dringende TestFlightvorbereitung A-TF1
+Alle drei exakten CIs am Sourcepin645c8c1 unabhängig completed/success:
+[Apple39908768321](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39908768321),
+[Vault39908768308](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39908768308),
+[Docs39908768380](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39908768380).
+Beide actool-Preflights,22 Swiftprüfungen,1.008 Datums-/4.032 Timestampvektoren,
+13 Pins/Originaltexte und Mac-/iPad-Simulatorbuilds erfolgreich. Sechs ohne Fixtures
+übersprungene Livetests sind keine neuen DB-Livenachweise. S2a-Main d0dea67 hatte
+bereits alle drei kombinierten CIs erfolgreich abgeschlossen.
 
-Separater Prüfkandidat, noch nicht integriert: einheitlich de.linolaske.dbmanager,
-Team J2DU2P47XW, Version0.1.0/Build1. Explizite Portalregistrierung durch tatsächliche
-Distributionsprofile in erfolgreichen lokalen iPad-/Mac-App-Store-Exports belegt.
-Der Nutzer kann den ASC-Apprecord mit dieser Bundle-ID anlegen. Signierte
-Releasearchive für iPad und Universal-Mac, tatsächliche Originalnotices/Iconfallbacks
-und PrivacyInfo geprüft. Eigenes editierbares zweilagiges Icon-Composer-Projekt mit
-tatsächlichen Renderer-/Actoolnachweisen. Kein Upload oder Einreichen.
-[Handoff](handoffs/A-TF1.md). Exportauskunft des Eigentümers, Storemetadaten,
-unabhängiger Review und finale öffentliche Apple-CI vor Integration offen.
+Begrenzter Releasecheck: Byte-/Ancestryprüfung,13 Rootpins/Originaltexte,
+Shell-/Python-Syntax, Dokumentation/Diff, Exportdatei-SHA/Bytegrößen sowie volle
+Dateibaummanifeste der privaten Archivkopien und deren strikte Signaturen/Identität
+bestanden. Keine alten signierten Archive neu gebaut oder überschrieben, keine
+unnötige native Vollmatrix wiederholt. Die neue Mainserie startet mit diesem
+Veröffentlichungscheckpoint und wird noch nicht als erfolgreich behauptet.
 
-Nächster Schritt: A-TF1 unabhängig prüfen; A3/C-Export1 bleibt zugunsten Pages
-und TestFlight ausdrücklich aufgeschobener Vorschlag ohne Implementierung. [Arbeitsplan](ARBEITSPLAN.md),
-[Einrichtung](../EINRICHTUNG.md). Apple-Statuspflege ist für dieses Fortsetzungsfenster an den S2a-Agent delegiert.
+## Offene Plattform-/Produktgates
 
-## A-TF1: offenes CI-Hostgate
+G-S2b auf damaligem ad-hoc-Host ohne Team-ID: DP-Keychain-SecItemAdd=-34018,
+keine Itemanlage/Dialogs/Fallbacks. Atomarer CAS, OS-Lock und Unsicherheitsfälle
+auf geeignetem signierten/provisionierten Host bleiben separat zu beweisen.
+Die neue Appsignierung schließt dieses Gate nicht automatisch. Kein produktiver
+InMemory-/Dateifallback. G-S2b/C-Export1/A3 bleiben eigene Pakete nach Beauftragung.
 
-Native CI39906842616 ist fehlgeschlagen; die schnelle unveränderte echte
-Iconvorprüfung39908555341 reproduziert AssetCatalogAgent-Runtimeabbruch und
-fehlende CoreMedia-/MediaToolbox-Symbole auf macOS15/Xcode26.3. Kontrollierter
-Hostwechsel auf macos-26 behält Xcode26.3 und sämtliche Produkt-/Icon-/Paketbytes
-sowie Mac-/iPad-Prüfungen bei; neuer tatsächlicher Erfolg bleibt abzuwarten.
-Fachreview59c7004 und vorhandene signierte Archive/Exporte bleiben Provenienz,
-keine Upload-/Einreichungsaktion oder vorweggenommene neue CI-Freigabe.
+macOS14/iPadOS17 sind Deploymentziele; echte Geräte, alte OS-Laufzeiten,
+interaktive OS-UI und Runtime-Sandboxdurchsetzung sind nicht durch Signatur oder
+Entitlements abgenommen. Kein nativer MySQL-/MariaDB-Adapter wegen belegtem
+TLS-Downgrade, kein SSH/HTTP-Backendclient/Passkey/CloudKit/Teamumfang. READ ONLY
+ist keine vollständige DBsandbox, Abbruch garantiert keinen Rollback.
 
-### A-TF1: tatsächlicher Hostfix-Abschluss
-
-Exakter Korrekturcommit645c8c1: Apple39908768321, Vault39908768308 und
-Docs39908768380 sind inzwischen success. Derselbe Xcode26.3 auf macos-26
-kompiliert echte Composericons und beide Appziele; App-/Icon-/Paketbytes und
-vorhandene signierte Exporte unverändert. Frühere Fehler bleiben historische
-Befunde. Enger unabhängiger CI-Diffreview und Mainintegration stehen noch aus;
-keine Upload-/Store-/Gerätefreigabe. Details und Einschränkungen im A-TF1-Handoff.
+Eigener Code AGPL-3.0-only, Abhängigkeiten behalten Originallizenzen. Keine eigenen
+Build-/Signing-/Deployjobs oder Container offen. Originalartefakte unverändert
+erhalten; private Kopien sind absichtliche Benutzerartefakte, keine zu bereinigenden
+Scratchdateien. AppleSTATUS/Plan für diesen Release exklusiv beim Releasekoordinator,
+weitere Zuweisung durch Root. [Arbeitsplan](ARBEITSPLAN.md), [Einrichtung](../EINRICHTUNG.md).
