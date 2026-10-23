@@ -1,20 +1,23 @@
 # Arbeitsplan
 
-Stand: 20.10.2026. Lead koordiniert, organisiert unabhängige Reviews, integriert und
-pflegt zentrale Statusdateien. Agents implementieren. Gesamtzeitgrenze im Hauptrepo:
-21.10.2026 04:00 Europe/Berlin (=02:00 UTC) oder vorher vollständiger Abschluss.
+Stand: 23.10.2026. Root koordiniert; Agents implementieren, prüfen, dokumentieren
+und übernehmen ausdrücklich delegierte Integrationen. Nutzerverlängerung bis
+heute 10:00 Europe/Berlin (=08:00 UTC), oder vorher vollständiger Abschluss.
+Apple-STATUS/ARBEITSPLAN sind im Fortsetzungsfenster allein an S2a delegiert;
+Hauptrepo-Statuspflege liegt beim dort beauftragten Agent.
 
 | ID | Auftrag | Tatsächlicher Stand und Abnahme |
 | --- | --- | --- |
 | P0 | Eigenständiges öffentliches Repo, Lizenz und Agent-Einstieg | abgeschlossen |
 | A1 | Eigenständiger nativer SQLite-/SwiftUI-Arbeitsplatz | nach QA und CI integriert; zehn Tests, Mac-/Simulatorbuild, Lifecyclefix geschlossen |
-| A2 | Direkter PostgreSQL-Pfad ohne Go, SQLite erhalten | Quellen89b2683/abaa3dc/b72e62c nach unabhängigem Review und exakter grüner CI integriert als fdd533e/cd5d886/031b1e8; Kalenderbefund geschlossen, konkreter NIOssl-Pin akzeptiert. Leadintegrationsprüfung bestanden; neue Main-CI noch kontrollieren. |
-| S2a | Eigenständiger Vault-Core ohne Appverdrahtung | aktiv, feat/vault-core, .worktrees/vault-core, Basis7cbeb38; neuer begrenzter Core mit eigenständiger unabhängiger Abnahme |
+| A2 | Direkter PostgreSQL-Pfad ohne Go, SQLite erhalten | Quellen89b2683/abaa3dc/b72e62c nach unabhängigem Review und exakter grüner CI integriert als fdd533e/cd5d886/031b1e8; Kalenderbefund geschlossen, konkreter NIOssl-Pin akzeptiert. Leadintegrationsprüfung bestanden; Main-CI39505094304 auf7e97aae erfolgreich; unabhängiger Review als A2-review dauerhaft gesichert. |
+| S2a | Eigenständiger Vault-Core ohne Appverdrahtung | Autorenkandidat ab lokalem Unterbrechungs-WIP e576c05 fortgesetzt; 16 Tests/iPad-Zielcompile/6 echte Prozessabbrüche/Format- und14Argon2pins frisch bestanden; sauberer Archiv-/CI-/Handoffabschluss und unabhängige Coreabnahme offen |
 | S2b | Produktiver Anchor und App-/Recoveryablauf | noch nicht beauftragt; S2a-QA und praktische Plattform-/Sicherheitsgates Voraussetzung |
 
 S2a-Dateibesitz: nur neues Packages/DBManagerVault samt Tests/Fixtures/Originaltexten/
 Locks, eigene Vault-CI/Skripte, neue Sicherheitsdokumente/ADR-A003/HandoffS2a. Keine
-App-/Xcode-/Rootpackage-/DBManagerCore-/A2-/zentralen Statusänderungen. Actor-Session,
+App-/Xcode-/Rootpackage-/DBManagerCore-/A2-Produktänderungen. Nur Apple-STATUS und
+ARBEITSPLAN sind für das neue Zeitfenster zusätzlich ausdrücklich delegiert. Actor-Session,
 verwaltete private Dateiablage, sichere Deskriptoren/flock/CAS/temp0600/fsync/rename,
 extern dauerhafte Reservierung jeder Root-AEAD-Nutzung vor Verschlüsselung. Anchor
 bindet VaultID/Epoch/Generation/Hash/Lebenszeitverbrauch; Pendingzustände nur über
@@ -33,7 +36,8 @@ AbnahmeS2a: exakte S1-Formatinterop/14 Original-Argon2dateien, echte Dateisystem
 Fehler-/Crash-/Concurrency-/Bounds-/Factor-/Recoveryfälle, Dokumentation/Lizenzen
 und unabhängiger Securityreview. Testspeicher oder Compile ist keine Produktfreigabe.
 
-Alle Writer eigener Worktree/Branch; zentrale STATUS/ARBEITSPLAN beim Lead.
+Alle Writer eigener Worktree/Branch; Apple-Statuspflege im Fortsetzungsfenster allein
+beim S2a-Agent. Reviewnachweise werden getrennt von ungeprüftem Core integriert.
 Alte saubere A1-/A2-Worktrees bleiben Provenienz. Nur eigene kurzlebige Testressourcen,
 keine fremden Container/Geräte oder OS-Rechte ändern. Echte Geräte/Signing/alte OS/
 interaktive OS-UI ausdrücklich offen. Jobs vor Kontextwechsel im Handoff erfassen.
