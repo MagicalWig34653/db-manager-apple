@@ -129,3 +129,51 @@ func liveWorkbenchUsesDirectPostgresThenClearsFailedReplacement() async throws {
     #expect(model.fileName != nil && model.error == nil)
     model.close(); await model.operation?.value
 }
+
+@MainActor
+@Test func cellDisplayKeepsNullEmptyAndTruncationDistinct() {
+    #expect(WorkbenchModel.displayText(Cell(kind: .null)) == "NULL")
+    #expect(WorkbenchModel.displayText(Cell(kind: .text, value: "")) == "\"\"")
+    let long = String(repeating: "x", count: 600)
+    #expect(WorkbenchModel.displayText(Cell(kind: .text, value: long)).count == 500)
+    #expect(WorkbenchModel.fullText(Cell(kind: .text, value: long)).count == 600)
+    #expect(WorkbenchModel.displayNote(Cell(kind: .text, value: long)).contains("gekürzt"))
+    #expect(!WorkbenchModel.displayNote(Cell(kind: .integer, value: "1")).contains("gekürzt"))
+}
+
+#if os(macOS)
+@MainActor
+@Test func compactResultListRendersWithoutScreenRecording() async throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let database = SQLiteDatabase()
+    try await database.open(directory.appendingPathComponent("synthetic.sqlite"), create: true)
+    let result = try await database.execute("SELECT 1 AS a, 'b' AS b, NULL AS c, x'00' AS d UNION ALL SELECT 2,'',NULL,x''", limits: QueryLimits(maxRows: 10))
+    let renderer = ImageRenderer(content: ResultView(result: result, forceCompact: true).padding().frame(width: 360, height: 300))
+    let image = try #require(renderer.nsImage)
+    #expect(image.size.width == 360 && image.size.height == 300)
+    #expect(try #require(image.tiffRepresentation).count > 2_000)
+    await database.close()
+}
+#endif
+
+@MainActor
+@Test func connectingFromSqliteSwitchesSourceOnlyOnConnectAndDraftIsDiscardable() async throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let model = WorkbenchModel(localRoot: directory)
+    model.createLocal(); await model.operation?.value
+    let active = model.fileName
+    // Showing the connection sheet or editing the draft must not touch the active source.
+    model.password = "synthetic-draft"
+    #expect(model.source == .sqlite && model.fileName == active)
+    model.discardConnectionDraft()
+    #expect(model.password.isEmpty && model.fileName == active)
+    // Only an actual connect attempt switches the source.
+    model.host = "invalid/path"; model.databaseName = "synthetic"; model.username = "synthetic"
+    model.connectPostgres()
+    #expect(model.source == .postgres && model.fileName == nil)
+    await model.operation?.value
+    #expect(model.error != nil && model.fileName == nil && model.password.isEmpty)
+}

@@ -1,11 +1,11 @@
 # db-manager-apple
 
-Eigenständige Swift/SwiftUI-App für macOS und iPadOS. Eigener Projektcode: **AGPL-3.0-only**.
+Eigenständige Swift/SwiftUI-App für macOS, iPadOS und iPhone (iOS). Eigener Projektcode: **AGPL-3.0-only**.
 
 Native Arbeitsplätze: lokale SQLite-Dateien öffnen/anlegen oder direkt über
 verifiziertes TLS mit PostgreSQL verbinden, Objekte auswählen und einzelne SQL-
 Anweisungen ausführen. SQLite bleibt ohne Netzwerk und Go-Server verfügbar. Erste Arbeitsziele sind
-macOS 14 und iPadOS 17; echte Altgeräte-/iPadtests sind noch offen.
+macOS 26, iPadOS 26 und iOS 26 (siehe [ADR-A004](docs/decisions/ADR-A004-mac-iphone-ui.md)); echte Geräte-, iPhone- und interaktive Mac-Tests sind noch offen.
 
 Schreibzugriffe sind zunächst gesperrt und müssen bewusst freigegeben werden.
 Ergebnisse unterscheiden NULL, leere Strings und BLOBs, erhalten 64-Bit-Ganzzahlen

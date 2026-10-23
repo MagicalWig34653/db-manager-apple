@@ -13,9 +13,9 @@ sh scripts/check-apple.sh
 ```
 
 Das Skript legt ein eigenes temporäres Buildverzeichnis an, führt Swift-Tests,
-macOS- und iPad-Simulator-Build aus und entfernt sein Buildverzeichnis danach.
+macOS- und iOS-Simulator-Build (iPhone und iPad) aus und entfernt sein Buildverzeichnis danach.
 Signing ist dabei deaktiviert; der Simulator wird weder gestartet noch gestoppt.
-Ein Build mit Deploymentziel 14/17 belegt keinen Lauf auf diesen OS-Versionen.
+Ein Build mit Deploymentziel 26.0 (macOS, iOS, iPadOS; siehe ADR-A004) belegt keinen Lauf auf diesen OS-Versionen.
 
 Einzelbefehle, jeweils mit selbst gewähltem temporärem Buildverzeichnis:
 
@@ -39,7 +39,7 @@ einer festen offiziellen NIOssl-Revision; keine bewegliche Branchbindung.
 
 ## Anwendung
 
-`DBManager.xcodeproj` öffnen, Schema `DBManager` und eigenen Mac oder iPad-Simulator
+`DBManager.xcodeproj` öffnen, Schema `DBManager` und eigenen Mac, iPhone- oder iPad-Simulator
 wählen. Für echtes Gerät oder Verteilung eigenes Signing konfigurieren; dieser
 Auftrag veröffentlicht keine signierte App. Xcode enthält für macOS die deklarierte
 App-Sandbox, Dateiauswahlberechtigung und ausgehende Netzwerkberechtigung. Unsigned Builds beweisen deren Laufzeit-
