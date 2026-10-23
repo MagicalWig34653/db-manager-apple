@@ -94,3 +94,31 @@ steigen (vom Autor benannt). Release-Archiv mit Familie 1,2 nicht geprüft.
 Interaktive Mac-GUI, Menüfokus, Mehrfenster zur Laufzeit, iPhone/iPad-Simulator- oder Gerätelauf, VoiceOver,
 Dynamic Type, signierte Builds/Sandbox, iOS-Gegenmessung 17 und Variante 27.0, `check-apple.sh` als Ganzes,
 CI mit Xcode 26.3.
+
+## Nachreview der Fixes (c260afa)
+
+Geprüft wurde `git diff 71efc29..c260afa` (aus `git archive c260afa` gebaut; der Review-Branch enthält die Fixes nicht,
+er wurde nicht gemergt). Eigene Läufe nacheinander: `swift test` (17 Kern- + 8 App-Tests bestanden), `check-icon.sh`
+(Mac, iPad, iPhone bestanden), xcodebuild macOS und iOS Simulator generisch (Debug) erfolgreich,
+`check-distribution.py` für beide Bundles und `check-docs.py` bestanden, keine `libswiftCompatibilitySpan.dylib`.
+
+**Urteil: freigabefähig für die Integration** (Upload/Archiv/GUI weiterhin ungeprüft).
+
+- **M2 behoben.** ⌘O öffnet nur den Importer; `open(url)` wechselt die Quelle erst nach Auswahl. ⌘K zeigt nur das Sheet;
+  `connectPostgres()` wechselt Quelle/SQL erst beim Verbinden. Abbruch von Dialog/Sheet lässt Zustand, Verbindung und CA
+  unverändert (Test belegt das). Kein Pfad verliert dabei die CA unbeabsichtigt. Verbleibend, niedrig (N1): ein
+  fehlgeschlagener Verbindungsversuch aus einer aktiven SQLite-Sitzung schließt diese (Ersatzsemantik des
+  bestehenden Modells, nicht neu); `open()` löscht die CA beim Wechsel PostgreSQL nach SQLite nicht mehr
+  (zuvor `changeSource`), sie bleibt als Entwurf bis zur nächsten Quelle. Beides ohne Sicherheitswirkung (CA ist öffentlich).
+- **L1 behoben.** `onDismiss` des Sheets ruft `discardConnectionDraft()`; erfasst Schließen-Button und Wischen.
+  Erfolgreiches/fehlgeschlagenes Verbinden leert das Passwort schon in `connectPostgres`. Passwort-Lebensdauer sonst unverändert.
+- **L2 behoben.** Selektion wird nun auf allen Plattformen zurückgesetzt. Kleine Restfläche (N2, niedrig): bei
+  laufender Operation (`busy`) bleibt die Selektion bis zum nächsten Wechsel stehen; auf macOS verschwindet die
+  Hervorhebung sofort. Keine funktionale Regression gefunden.
+- **L3 behoben.** Grep über Doku/Skripte/Projekt: verbleibende 14/17-Treffer sind historische Handoffs/ADR-Kontext,
+  als abgelöst markiert, und das getrennte Paket `DBManagerVault` (14/17, bewusst). `check-icon.sh` prüft Mac, iPad und
+  iPhone mit 26.0 (eigener Lauf bestanden).
+- **L5 behoben.** Hinweis zur Systemablage im Zeilendetail.
+- **I1 behoben.** `prepare-testflight.py --platform ios|ipad|mac`; `ipad` ist Alias, Skript baut nur lokal
+  (Kopfzeile und Schlussmeldung: nichts hochgeladen). Das Skript selbst wurde nicht ausgeführt (würde archivieren). Buildnummer bleibt 3
+  und muss vor Upload steigen.
