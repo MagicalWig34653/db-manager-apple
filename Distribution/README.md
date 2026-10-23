@@ -1,6 +1,6 @@
 # TestFlight lokal vorbereiten
 
-App: de.linolaske.dbmanager · Team J2DU2P47XW · Version0.1.0 · Build1.
+App: de.linolaske.dbmanager · Team J2DU2P47XW · Version 0.1.0 · Build 2 (Build 1 bereits hochgeladen).
 Ein gemeinsamer App-Store-Eintrag kann iOS/iPadOS und macOS umfassen; separat
 archivieren und später nach ausdrücklicher Freigabe getrennt hochladen.
 Bundle-ID muss als explizite ID im Developeraccount registriert sein. Ein
@@ -23,3 +23,9 @@ Accountberechtigungen konkret beheben; kein unsicherer Signingfallback.
 Vor Upload: eindeutige höhere Buildnummer, Distributionvalidierung, tatsächliche
 Privacy-/Exportauskunft des Betreibers, TestFlightinformationen und unabhängiger
 Review. [Tatsächlicher Nachweisstand](../docs/handoffs/A-TF1.md).
+
+Exportcompliance: `ITSAppUsesNonExemptEncryption = YES` (Standardverschlüsselung:
+TLS über BoringSSL, SwiftCrypto); Eigentümer wählte in App Store Connect
+„Standardmäßige Verschlüsselungsalgorithmen“. Rechtliche Ausfuhrerklärung beim
+Eigentümer. Jeder weitere Upload braucht eine höhere Buildnummer.
+[Details](../docs/handoffs/A-TF2.md).

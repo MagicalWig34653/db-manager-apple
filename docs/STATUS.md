@@ -97,3 +97,12 @@ Build-/Signing-/Deployjobs oder Container offen. Originalartefakte unverändert
 erhalten; private Kopien sind absichtliche Benutzerartefakte, keine zu bereinigenden
 Scratchdateien. AppleSTATUS/Plan für diesen Release exklusiv beim Releasekoordinator,
 weitere Zuweisung durch Root. [Arbeitsplan](ARBEITSPLAN.md), [Einrichtung](../EINRICHTUNG.md).
+
+## A-TF2 – Exportcompliance, Build 2
+
+Branch `fix/export-compliance`: `ITSAppUsesNonExemptEncryption = YES` (Standard-
+verschlüsselung, Auswahl des Eigentümers in ASC), Build **2**, Version 0.1.0.
+Lokal geprüft: `check-apple.sh` und signierter iPad-Release-Export (Info.plist mit
+Schlüssel, Build 2). `libswiftCompatibilitySpan.dylib` ist im Export eingebettet.
+Rechtliche Ausfuhrerklärung bleibt beim Eigentümer. Upload-/Verarbeitungsstatus
+von Build 2 siehe [A-TF2](handoffs/A-TF2.md); nicht dort belegt gilt als offen.
