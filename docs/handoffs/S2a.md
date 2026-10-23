@@ -163,3 +163,10 @@ Eigene parallele Prüfläufe und Scratchverzeichnisse beendet/entfernt. Main-CI
 startet nach der freigegebenen Veröffentlichung und wird separat exakt zugeordnet;
 kein vorweggenommener kombinierter CI-Erfolg. Nicht zurückrollbarer Produktanker
 und spätere persönliche Credentialpersistenz bleiben gesonderte S2b-Gates.
+
+## Öffentlicher Main-Checkpoint23.10.2026 05:15UTC
+
+Integration d0dea67 veröffentlicht. Exakte Vault39903661136 und Docs39903661079
+bestanden; Apple39903661074 weiterhin aktiv, keine doppelte Ausführung gestartet.
+Eigene lokale Releasejobs beendet. G-S2b separat auf4953399 dokumentiert:
+fehlendes Entitlement verhindert OS-Aufnahme (-34018), keine Produktankerfreigabe.

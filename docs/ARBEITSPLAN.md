@@ -11,8 +11,8 @@ Hauptrepo-Statuspflege liegt beim dort beauftragten Agent.
 | P0 | Eigenständiges öffentliches Repo, Lizenz und Agent-Einstieg | abgeschlossen |
 | A1 | Eigenständiger nativer SQLite-/SwiftUI-Arbeitsplatz | nach QA und CI integriert; zehn Tests, Mac-/Simulatorbuild, Lifecyclefix geschlossen |
 | A2 | Direkter PostgreSQL-Pfad ohne Go, SQLite erhalten | Quellen89b2683/abaa3dc/b72e62c nach unabhängigem Review und exakter grüner CI integriert als fdd533e/cd5d886/031b1e8; Kalenderbefund geschlossen, konkreter NIOssl-Pin akzeptiert. Leadintegrationsprüfung bestanden; Main-CI39505094304 auf7e97aae erfolgreich; unabhängiger Review als A2-review dauerhaft gesichert. |
-| S2a | Eigenständiger Vault-Core ohne Appverdrahtung | Nach unabhängigem Review ohne Findings als isolierter Core abgenommen; vollständige Historie mit Originalpins übernommen, kombinierte Vault-/A2-Appchecks grün; neue Main-CI vor abschließendem Nachweis prüfen. Keine produktive Persistenzfreigabe |
-| S2b | Produktiver Anchor und App-/Recoveryablauf | nur enger Plattformvorschlag vorbereitet: eigener nicht synchronisierter OS-Anker, nichtinteraktive synthetische Probe und Signierungsgrenzen; keine Appimplementierung/Secretpersistierung beauftragt |
+| S2a | Eigenständiger Vault-Core ohne Appverdrahtung | Nach unabhängigem Review ohne Findings als isolierter Core abgenommen; vollständige Historie mit Originalpins übernommen, kombinierte Vault-/A2-Appchecks grün; Main-Vault39903661136/Docs39903661079 bestanden, Apple39903661074 um05:15UTC noch aktiv. Keine produktive Persistenzfreigabe |
+| S2b | Produktiver Anchor und App-/Recoveryablauf | isoliertes Gate G-S2b durchgeführt: SecItemAdd=-34018 bei eigenem ad-hoc-Host ohne Team-ID; keine Itemanlage, CAS/Lock/Unsicherheit ungeprüft. Separater Probebranch4953399; produktiver Anchor und Appsecretpersistenz gesperrt |
 
 S2a-Dateibesitz: nur neues Packages/DBManagerVault samt Tests/Fixtures/Originaltexten/
 Locks, eigene Vault-CI/Skripte, neue Sicherheitsdokumente/ADR-A003/HandoffS2a. Keine

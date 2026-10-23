@@ -57,14 +57,22 @@ Fixtures ausdrücklich übersprungen), 1.008 Datum-/4.032 Timestampvektoren,
 13 Abhängigkeitspins/Originalnotices, macOS-/iPad-Appbuild einschließlich
 Originaltexte und Info.plist; Dokumentation125/0 am geprüften Integrationsbaum.
 Keine erneute tatsächliche PostgreSQL-Liveprüfung oder Gerätelaufzeit behauptet.
-Neue kombinierte Main-CI nach Veröffentlichung vor endgültigem CI-Checkpoint prüfen.
+Exakter veröffentlichter Integrationsstand d0dea67: [Vault39903661136](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39903661136)
+und [Docs39903661079](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39903661079)
+bestanden. [Apple39903661074](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39903661074)
+am Checkpoint05:15UTC noch aktiv; kein vorweggenommener Erfolg.
 
 Der Anker ist eine zwingende externe Vertrauensannahme, kein produktiver
 InMemory-/Dateifallback. Reservierungen vor Verschlüsselung, CAS/Pending/Rootbudget,
 private POSIX-Modi und Hash-Rücklesen sind geprüft; keine Hardwaremonotonie,
 ACL-/Sandbox-/FileProtection-/Restorefreigabe. Spätere S2b-App-/Ankerschritte
-benötigen gesonderte Plattformprobe und unabhängige Abnahme. Aktuell darf nur ein
-enger S2b-Plattformvorschlag vorbereitet werden; keine Appsecretpersistierung.
+benötigen gesonderte Plattformprobe und unabhängige Abnahme. Die ausdrücklich beauftragte isolierte Plattformprobe G-S2b ist abgeschlossen:
+SecItemAdd=-34018/errSecMissingEntitlement, eigener ad-hoc-Host ohne Team-ID.
+Keine Itemanlage, keine Dialoge oder Fallbacks; CAS-/OS-Lock-/Unsicherheitsbeweise
+offen. [Separater ungeprüfter Probebranch4953399](https://github.com/MagicalWig34653/db-manager-apple/tree/4953399de0c4b04800a26ab70f8b811a1224a1c7/spikes/keychain-anchor-gate)
+enthält Befund/Quellen/Repro; keine Integration oder produktive Ankerfreigabe.
+Keine Appsecretpersistierung; weitere Providerschichten erst nach geeignetem
+signierten/provisionierten Host und unabhängigen positiven Plattformbelegen.
 
 ## Grenzen und Fortsetzung
 
@@ -77,6 +85,6 @@ HTTP-Backendclient, produktiver Tresor, Passkey, CloudKit-Sync oder Teamumfang.
 Abbruch garantiert keinen Rollback, READ ONLY keine vollständige DB-Sandbox.
 Eigener Code AGPL-3.0-only, Abhängigkeiten behalten ihre Original-Lizenzen.
 
-Nächster Schritt: kombinierte S2a-Main-CI kontrollieren und S2b-Plattformgate
-mit tatsächlichen Signierungs-/Nichtinteraktionsgrenzen abstimmen. [Arbeitsplan](ARBEITSPLAN.md),
+Nächster Schritt: laufende S2a-Apple-CI kontrollieren; A3-Ergebnisexport zunächst
+als gemeinsamen Root-/Web-/Apple-Vertragsvorschlag abstimmen. [Arbeitsplan](ARBEITSPLAN.md),
 [Einrichtung](../EINRICHTUNG.md). Apple-Statuspflege ist für dieses Fortsetzungsfenster an den S2a-Agent delegiert.
