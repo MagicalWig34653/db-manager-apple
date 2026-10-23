@@ -40,26 +40,31 @@ Arbeitsspeicher; keine vollständige Datenbankverwaltung oder Credentialpersiste
   Originaltext. 13 gepinnte Abhängigkeiten, identische SwiftPM-/Xcode-Locks und
   Originalnotices im Appbundle; fehlendes Release-Tag bleibt Wartungsrisiko.
 
-## Aktive Arbeit S2a
+## Eigenständiger Tresorkern S2a
 
-Security-/Apple-Agent setzt nach ausdrücklicher Verlängerung auf `feat/vault-core`
-das eigenständige `Packages/DBManagerVault` fort. Die Unterbrechung wurde lokal als
-WIP `e576c05` gesichert; keine Coreintegration oder produktive Credentialpersistenz.
-App-/Xcode-/Rootpackage-/A2-Dateien bleiben unverändert. Actor-Session, v1-Reader,
-atomarer privater Writer, unabhängiger CAS-Ankervertrag und Recovery/Migration mit
-neuen Faktoren sind als isolierter Kandidat implementiert. Synthetischer Speicher
-existiert nur im Testtarget bzw. ausdrücklich separaten Crashprüfwerkzeug; es gibt
-keinen produktiven Provider oder stillen InMemory-Fallback.
+Nach unabhängigem [Core-/Securityreview](handoffs/S2a-review.md) ohne offene
+Findings als **isoliertes Core-Inkrement** zur Integration abgenommen. Kein
+produktiver Anchor, keine App-/Credentialpersistenzfreigabe. [Paketvertrag und
+Originaltexte](../Packages/DBManagerVault/README.md), [ADR-A003](decisions/ADR-A003-vault-core.md),
+[Autoren-/Integrationshandoff](handoffs/S2a.md). Gesamtes Paket bytegleich zum
+geprüften Stand8d6fa37 einschließlich Codebbbc4e6 übernommen; vorhandene App-,
+Root-Package-, Xcode- und A2-Produktdateien unverändert.
 
-Frischer Autorenlauf am 23.10.2026: 16 Tests, iPad-Simulator-Zielcompile, sechs echte
-abrupte Prozessabbrüche, Format-/Fixture-/14-Argon2-Hashpins bestanden. Die enge
-Selbstprüfung fand vorab eine fehlende Rückleseprüfung vor Temp-Rename; neue
-Regression zuerst rot, nach Hash-/Enddateiprüfung grün. Das ersetzt keine
-unabhängige Core-QA. Abschließender sauberer Archiv-/CI-/Handoffstand folgt im
-Paket; danach unabhängiger Review vor jeder Coreintegration. Tatsächlicher
-produktiver nicht zurückrollbarer Anker, App-/Recoveryoberfläche und Zielgeräte
-bleiben separate S2b-Gates. S2a-Agent darf allein diese beiden Apple-Statusdateien
-pflegen; Root koordiniert und schreibt keine Implementierung.
+Kombinierte lokale Releaseprüfung bestanden: 16 Vaulttests, sechs echte abrupte
+Prozessabbrüche, iPad-Simulator-Zielcompile, Format-/Fixture-/14-Argon2hashes.
+Zusätzlich bestehende A2-App mit17 Kern-/5 Appprüfungen (sechs Livetests ohne
+Fixtures ausdrücklich übersprungen), 1.008 Datum-/4.032 Timestampvektoren,
+13 Abhängigkeitspins/Originalnotices, macOS-/iPad-Appbuild einschließlich
+Originaltexte und Info.plist; Dokumentation125/0 am geprüften Integrationsbaum.
+Keine erneute tatsächliche PostgreSQL-Liveprüfung oder Gerätelaufzeit behauptet.
+Neue kombinierte Main-CI nach Veröffentlichung vor endgültigem CI-Checkpoint prüfen.
+
+Der Anker ist eine zwingende externe Vertrauensannahme, kein produktiver
+InMemory-/Dateifallback. Reservierungen vor Verschlüsselung, CAS/Pending/Rootbudget,
+private POSIX-Modi und Hash-Rücklesen sind geprüft; keine Hardwaremonotonie,
+ACL-/Sandbox-/FileProtection-/Restorefreigabe. Spätere S2b-App-/Ankerschritte
+benötigen gesonderte Plattformprobe und unabhängige Abnahme. Aktuell darf nur ein
+enger S2b-Plattformvorschlag vorbereitet werden; keine Appsecretpersistierung.
 
 ## Grenzen und Fortsetzung
 
@@ -72,5 +77,6 @@ HTTP-Backendclient, produktiver Tresor, Passkey, CloudKit-Sync oder Teamumfang.
 Abbruch garantiert keinen Rollback, READ ONLY keine vollständige DB-Sandbox.
 Eigener Code AGPL-3.0-only, Abhängigkeiten behalten ihre Original-Lizenzen.
 
-Nächster Schritt: S2a-Kandidat mit Archiv/CI/Handoff abschließen und unabhängig prüfen. [Arbeitsplan](ARBEITSPLAN.md),
+Nächster Schritt: kombinierte S2a-Main-CI kontrollieren und S2b-Plattformgate
+mit tatsächlichen Signierungs-/Nichtinteraktionsgrenzen abstimmen. [Arbeitsplan](ARBEITSPLAN.md),
 [Einrichtung](../EINRICHTUNG.md). Apple-Statuspflege ist für dieses Fortsetzungsfenster an den S2a-Agent delegiert.

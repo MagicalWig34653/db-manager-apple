@@ -127,3 +127,39 @@ Appcontainer und OS-Anker nicht. Vor Setupbestätigung existieren bereits nicht
 geheime reservierte Ankermetadaten, aber noch keine Tresornutzdatei. Diese
 Präzisierung ist keine produktive Anchorimplementierung. Nächster Schritt: QA-
 Findings/CIs durch koordinierende Rolle auswerten; kein weiteres Feature begonnen.
+
+
+## Delegierte Releaseintegration auf bestehendem A2-main
+
+23.10.2026, eigene `.worktrees/vault-release` / `release/vault-core`, Basis
+`3c92f974aa6d1c3056b25e3bc9ec5b0d0cb9f161`. Konkrete Leadfreigabe nach unabhängigem
+Review, kein Selbstreview als Abnahmeersatz. Vollständige Provenienz:
+
+| Geprüfte Quelle | Integrationscommit |
+| --- | --- |
+| WIPe576c05 |1023774|
+| Produktbbbc4e67 |46badd1|
+| ADR-/Archivhandoff4257cde |5e39156|
+| CI-Handoff8d6fa37 |ca9b57f|
+| Unabhängiger Reviewbe121457 |4b3ffdc|
+
+Gesamtes Paket, Vaultscript und Vault-CI per Gitdiff bytegleich zur freigegebenen
+Quelle8d6fa37. `Sources`, Root-Package/Locks und Xcodeprojekt bytegleich zum
+vorherigen A2-main3c92f97. Nur ADR-/Status-/Integrationsnachweise zusätzlich;
+ADR-A003 akzeptiert ausschließlich den begrenzten Core, keine App-/Anchorfreigabe.
+
+Am kombinierten Integrationsbaum tatsächlich bestanden:
+
+- `python3 scripts/check-vault.py`:16 Tests, iPad-Zielcompile, sechs echte
+  Prozessabbrüche, alle Format-/Fixture-/14-Argon2pins und Originaltexte.
+- `sh scripts/check-apple.sh`:17 Core-/5 Appprüfungen, dabei sechs Livetests ohne
+  Fixtureumgebung ausdrücklich übersprungen; zusätzlich1.008 Datum-/4.032
+  Timestampvektoren,13 Pins und vollständige Originalnotices, macOS-/generischer
+  iPad-Appbuild einschließlich Originaltexte und Info.plist, Dokumentation125/0.
+- Keine erneute echte PG-Livematrix, UIautomation, Signing-/OS-/Gerätefreigabe.
+  Die neue Bibliothek wird weiterhin nicht von der App oder Root-Package eingebunden.
+
+Eigene parallele Prüfläufe und Scratchverzeichnisse beendet/entfernt. Main-CI
+startet nach der freigegebenen Veröffentlichung und wird separat exakt zugeordnet;
+kein vorweggenommener kombinierter CI-Erfolg. Nicht zurückrollbarer Produktanker
+und spätere persönliche Credentialpersistenz bleiben gesonderte S2b-Gates.

@@ -1,6 +1,8 @@
 # ADR-A003: nativer Tresorkern, Persistenz und unabhängiger Nutzungsanker
 
-Status: **Vorschlag und implementierter S2a-Reviewkandidat**, 23.10.2026.
+Status: **als begrenztes eigenständiges Core-Inkrement nach unabhängiger QA
+akzeptiert**, 23.10.2026.
+[Unabhängiger Review](../handoffs/S2a-review.md), [Integrationsnachweis](../handoffs/S2a.md).
 Keine App-/Credentialoberfläche und keine produktive Anchor-/OS-Freigabe.
 
 ## Unveränderter Formatvertrag
