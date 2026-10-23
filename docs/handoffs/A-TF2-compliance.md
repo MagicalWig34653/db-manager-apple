@@ -38,15 +38,15 @@ bleibt allein beim Eigentümer; dieses Paket erstellt keine Attestation.
 
 ## libswiftCompatibilitySpan.dylib
 
-Befund im exportierten Build 2: Die Binary referenziert
-`@rpath/libswiftCompatibilitySpan.dylib` (RPATH `/usr/lib/swift`, kein weiterer
-Eintrag). Die Bibliothek ist **eingebettet** unter `Frameworks/`, mit Teamsignatur
-(arm64/arm64e, minos 12.2) signiert und liegt zusätzlich in `SwiftSupport/iphoneos`
-des Archivs. Xcode packt sie beim Export selbst ein; eine fehlende Einbettung
-wurde damit **nicht** reproduziert und es war keine Build-Setting-Änderung nötig.
-Der genaue Wortlaut der ASC-Meldung liegt dem Agent nicht vor; ob sie bei Build 1
-dieselbe Ursache hatte, wurde nicht geprüft. Bei erneutem Auftreten bei Build 2
-bitte den vollständigen ASC-Text liefern.
+Befund (Ursache siehe [A-TF2](A-TF2.md)): Die Datei war eingebettet, die Binary
+lud sie aber per `@rpath` bei ausschließlich `LC_RPATH=/usr/lib/swift`, also ohne
+app-lokalen Frameworkspfad. Behoben durch die Runpath-Einstellungen aus dem
+Diagnosebranch (iOS `@executable_path/Frameworks`, macOS `@executable_path/../Frameworks`).
+Im neu gebauten, signierten iPad-Export (Build 2) tatsächlich geprüft: LC_RPATH
+`/usr/lib/swift` und `@executable_path/Frameworks`, Bibliothek in `Frameworks/`,
+Preflight „Per-architecture embedded dependency runpaths“ bestanden. Der genaue
+ASC-Meldungstext lag dem Delivery-Agent nicht vor; ob die Meldung nach Upload
+verschwindet, ist erst nach der Serververarbeitung belegbar.
 
 ## Offen
 
