@@ -48,7 +48,19 @@ Preflight „Per-architecture embedded dependency runpaths“ bestanden. Der gen
 ASC-Meldungstext lag dem Delivery-Agent nicht vor; ob die Meldung nach Upload
 verschwindet, ist erst nach der Serververarbeitung belegbar.
 
+## Upload-Versuch Build 2: abgelehnt
+
+Ein Upload (`xcodebuild -exportArchive`, destination=upload, privates Optionsfile,
+Archiv des Commits d38b930, Build 2) wurde von Apple vor der Verarbeitung abgelehnt:
+„Invalid Export Compliance Code. The export compliance key value [] in the app's
+Info.plist doesn't match the key value of the app's export compliance documentation.“
+Exit 70, kein Build in der Verarbeitung. Apple verlangt demnach zusätzlich
+`ITSEncryptionExportComplianceCode` mit dem Code der in App Store Connect hinterlegten
+Exportdokumentation. Dieser Code ist ausschließlich dem Eigentümer zugänglich
+(App Store Connect, Apps, Exportcompliance-Dokumentation); er wurde nicht geraten.
+Alternative: Dokumentation/Code entfernen oder die Auswahl in ASC so ändern, dass
+kein Code erwartet wird. Kein weiterer Uploadversuch bis zur Eigentümerentscheidung.
+
 ## Offen
 
-Upload von Build 2, Verarbeitungsstatus und CI-Ergebnis: siehe Abschnitt
-„Ergebnis Upload/CI“ unten, falls ergänzt; sonst nicht belegt.
+Code des Eigentümers, danach Upload, Verarbeitungsstatus. CI-Ergebnis siehe GitHub.
