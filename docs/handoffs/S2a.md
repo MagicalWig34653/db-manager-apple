@@ -98,3 +98,32 @@ Cleanup. Keine Dockerressourcen, Apps oder Simulatoren gestartet. Verbliebene ei
 Caches werden nach dem Archivlauf entfernt, laufende Jobs im Abschlusscheckpoint
 angegeben. Nächster Schritt: unabhängige S2a-QA; S2b/App-/Anchor-/Backupablauf und
 CloudKit/Passkey/Teams/SSH gehören nicht zu diesem Kandidaten.
+
+## Abschließender Archiv-/CI-Checkpoint
+
+Semantischer Codekandidat **`bbbc4e67c6f13b45259983bb52d7108f50ad233f`**, nach
+Unterbrechungs-WIP `e576c05`, öffentlich auf `origin/feat/vault-core`. Zur späteren
+Integration gehört der gesamte Paketdiff ab `7cbeb38`; nicht nur der Folgecommit.
+Die unabhängige QA prüft diesen eingefrorenen Stand; danach keine Produktbytes
+verändert. Dieser Folgecheckpoint ergänzt ausschließlich Prüf-/Grenzendokumentation.
+
+**Frisches `git archive bbbc4e6` am23.10.2026 tatsächlich vollständig bestanden:**
+aus temporärer sauberer Archivkopie `python3 scripts/check-vault.py` und
+`python3 scripts/check-docs.py`; 16 Tests, nativer iPad-Zielcompile, sechs echte
+abrupte Childexits, Pins/Originaltexte und84 Dokumentdateien/0Fehler. Keine lokalen
+Builddateien, Caches oder Geschwisterrepos waren dafür nötig. Temporäre Archivkopie,
+Buildscratch und eigene zusätzliche KDF-Testcaches anschließend entfernt.
+
+Öffentliche Jobs am exakten Codekandidaten:
+
+- [Dokumentation39901527960](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39901527960): erfolgreich.
+- [Native Vault Core39901528027](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39901528027): zum Checkpoint noch in Arbeit, kein behaupteter Erfolg.
+- [Apple-Build39901527835](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39901527835): zum Checkpoint noch in Arbeit. Dieser isolierte Branch beruht auf A1; keine neue A2-Prüfung daraus ableiten.
+
+Verbleibende Jobs sind diese öffentlichen CIs und die unabhängige QA. **Keine
+eigenen lokalen Prüfprozesse, Fixturecontainer oder Simulatoren aktiv.**
+UID/0700/0600-Modusbits sind geprüft; erweiterte ACLs, tatsächlicher abgeschotteter
+Appcontainer und OS-Anker nicht. Vor Setupbestätigung existieren bereits nicht
+geheime reservierte Ankermetadaten, aber noch keine Tresornutzdatei. Diese
+Präzisierung ist keine produktive Anchorimplementierung. Nächster Schritt: QA-
+Findings/CIs durch koordinierende Rolle auswerten; kein weiteres Feature begonnen.
