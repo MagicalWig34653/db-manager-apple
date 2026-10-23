@@ -1,6 +1,6 @@
 # TestFlight lokal vorbereiten
 
-App: de.linolaske.dbmanager · Team J2DU2P47XW · Version 0.1.0 · Build 2 (Build 1 bereits hochgeladen).
+App: de.linolaske.dbmanager · Team J2DU2P47XW · Version 0.1.0 · Build 3 (Build 1 bereits hochgeladen; Build 2 wurde von Apple vor der Verarbeitung abgelehnt und nie verarbeitet).
 Ein gemeinsamer App-Store-Eintrag kann iOS/iPadOS und macOS umfassen; separat
 archivieren und später nach ausdrücklicher Freigabe getrennt hochladen.
 Bundle-ID muss als explizite ID im Developeraccount registriert sein. Ein
@@ -24,8 +24,9 @@ Vor Upload: eindeutige höhere Buildnummer, Distributionvalidierung, tatsächlic
 Privacy-/Exportauskunft des Betreibers, TestFlightinformationen und unabhängiger
 Review. [Tatsächlicher Nachweisstand](../docs/handoffs/A-TF1.md).
 
-Exportcompliance: `ITSAppUsesNonExemptEncryption = YES` (Standardverschlüsselung:
-TLS über BoringSSL, SwiftCrypto); Eigentümer wählte in App Store Connect
-„Standardmäßige Verschlüsselungsalgorithmen“. Rechtliche Ausfuhrerklärung beim
-Eigentümer. Jeder weitere Upload braucht eine höhere Buildnummer.
-[Details](../docs/handoffs/A-TF2-compliance.md).
+Exportcompliance: `ITSAppUsesNonExemptEncryption = NO`. Grundlage ist die Erklärung des
+Eigentümers in App Store Connect (Standardalgorithmen); Apple zeigte danach an, dass
+keine Dokumente hochzuladen sind (App gilt als ausgenommen). Frankreich schließt der
+Eigentümer bewusst aus. Rechtliche Ausfuhrerklärung beim Eigentümer. Jeder weitere
+Upload braucht eine höhere Buildnummer.
+[Details](../docs/handoffs/A-TF3-compliance.md), Vorgeschichte [A-TF2](../docs/handoffs/A-TF2-compliance.md).
