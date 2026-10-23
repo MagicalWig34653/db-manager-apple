@@ -75,3 +75,18 @@ Originaltexte und Herkunft an. Ein Runtime-Test prüft das tatsächliche Laden;
 Buildprüfung kontrolliert zusätzlich die im erzeugten Mac-/iPad-App-Bundle
 enthaltenen Dateien. Für vertriebene Binaries sind außerdem entsprechender
 Quellzugang, signierter Vertriebsweg und vollständige Releaseunterlagen nötig.
+
+## Nativer MySQL-/MariaDB-Pfad A4 (Vorschlag)
+
+Eigener Protokollcode (AGPL-3.0-only) in `Sources/DBManagerCore/MySQL*.swift`, keine neue
+Paketabhängigkeit und kein vendorter Fremdcode. `Package.swift` bindet lediglich zwei weitere
+Produkte des bereits gepinnten und inventarisierten `swift-nio` (`NIOPosix`, `NIOTLS`) in
+`DBManagerCore` ein; `Package.resolved` und
+[inventory.json](../Sources/DBManagerCore/Resources/ThirdParty/inventory.json) bleiben
+unverändert (`scripts/check-dependencies.py` bestätigt das). Anmelde-Hashes (SHA-1/SHA-256)
+kommen aus Apples CryptoKit (Systemframework, Apple-Bedingungen), nicht aus einer
+Drittbibliothek. MySQLNIO, MariaDB Connector/C und libmysqlclient werden nicht eingebunden;
+Begründung in [ADR-0007](https://github.com/MagicalWig34653/db-manager/blob/main/docs/decisions/ADR-0007-native-mysql-adapter.md)
+(Root-Repository, Status Vorschlag) und [A4](handoffs/A4-mysql.md). Die Testfixtures
+verwenden die offiziellen Docker-Images `mariadb:11.4.4` und `mysql:8.4` nur als
+wegwerfbare lokale Container; sie werden nicht verteilt.
