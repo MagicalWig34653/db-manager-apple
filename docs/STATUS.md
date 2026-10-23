@@ -106,3 +106,12 @@ Lokal geprüft: `check-apple.sh` und signierter iPad-Release-Export (Info.plist 
 Schlüssel, Build 2). Runpath-Fix für `libswiftCompatibilitySpan.dylib` im Export verifiziert ([A-TF2](handoffs/A-TF2.md)).
 Rechtliche Ausfuhrerklärung bleibt beim Eigentümer. Upload-/Verarbeitungsstatus
 von Build 2 siehe [A-TF2](handoffs/A-TF2-compliance.md); nicht dort belegt gilt als offen.
+
+## A-TF3 – Exportcompliance ausgenommen, Build 3
+
+Branch `fix/export-compliance-exempt`: `ITSAppUsesNonExemptEncryption = NO` (Debug und
+Release), Build **3**, Version 0.1.0. Build 2 wurde dreimal mit „Invalid Export Compliance
+Code“ abgelehnt und nie verarbeitet; der Schlüssel `YES` aus A-TF2 ist damit abgelöst.
+Grundlage: Nutzererklärung in App Store Connect, Apple verlangt keine Dokumente;
+Frankreich ausgeschlossen. Details und tatsächlich ausgeführte Prüfungen:
+[A-TF3](handoffs/A-TF3-compliance.md). Upload und Verarbeitung von Build 3: offen.

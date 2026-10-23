@@ -9,7 +9,7 @@ import subprocess
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--app', type=Path, required=True)
-parser.add_argument('--expected-build', default='2', help='Expected CFBundleVersion; defaults to the current build')
+parser.add_argument('--expected-build', default='3', help='Expected CFBundleVersion; defaults to the current build')
 parser.add_argument('--signed', action='store_true')
 parser.add_argument('--distribution-profile', action='store_true')
 args = parser.parse_args()
@@ -20,7 +20,7 @@ info = plistlib.loads((app / 'Contents/Info.plist' if mac else app / 'Info.plist
 assert info['CFBundleIdentifier'] == 'de.linolaske.dbmanager'
 assert info['CFBundleShortVersionString'] == '0.1.0'
 assert info['CFBundleVersion'] == args.expected_build
-assert info.get('ITSAppUsesNonExemptEncryption') is True, 'Standard encryption usage must be declared'
+assert info.get('ITSAppUsesNonExemptEncryption') is False, 'App must declare exempt encryption (key false)'
 assert (resources / 'Assets.car').is_file(), 'Compiled icon catalog absent'
 if mac:
     assert info.get('CFBundleIconFile'), 'Older macOS fallback declaration absent'
