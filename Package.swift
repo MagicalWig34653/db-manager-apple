@@ -21,7 +21,7 @@ let package = Package(
         .systemLibrary(name: "CSQLite"),
         .target(name: "DBManagerCore", dependencies: ["CSQLite", .product(name: "PostgresNIO", package: "postgres-nio"), .product(name: "NIOCore", package: "swift-nio"), .product(name: "NIOPosix", package: "swift-nio"), .product(name: "NIOTLS", package: "swift-nio"), .product(name: "NIOSSL", package: "swift-nio-ssl"), .product(name: "Logging", package: "swift-log"), .product(name: "DequeModule", package: "swift-collections")], resources: [.copy("Resources/ThirdParty")]),
         .executableTarget(name: "DBManagerApp", dependencies: ["DBManagerCore"], exclude: ["DBManager.entitlements"]),
-        .testTarget(name: "DBManagerCoreTests", dependencies: ["DBManagerCore", .product(name: "NIOCore", package: "swift-nio")]),
+        .testTarget(name: "DBManagerCoreTests", dependencies: ["DBManagerCore", .product(name: "NIOCore", package: "swift-nio"), .product(name: "NIOEmbedded", package: "swift-nio")]),
         .testTarget(name: "DBManagerAppTests", dependencies: ["DBManagerApp", "DBManagerCore"])
     ]
 )

@@ -4,7 +4,10 @@ import NIOCore
 import NIOSSL
 
 // Deliberately no Codable, description, persistence or URL/DSN initializer.
-public struct MySQLSettings: Sendable {
+public struct MySQLSettings: Sendable, CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
+    public var description: String { "MySQLSettings(<redacted>)" }
+    public var debugDescription: String { description }
+    public var customMirror: Mirror { Mirror(self, children: ["redacted": true]) }
     public let host: String
     public let port: Int
     public let database: String
@@ -241,7 +244,7 @@ public actor MySQLDatabase {
             try Task.checkCancellation()
             let current = try await MySQLConnection.connect(configuration) { gate.install($0) }
             connection = current
-            gate.installThread(current.threadID)
+            gate.installThread(try await current.authenticatedConnectionID())
             let result = try await withTaskCancellationHandler {
                 try Task.checkCancellation()
                 let small = QueryLimits(maxRows: 1, maxCellBytes: 1024, maxResultBytes: 4096, timeout: limits.timeout)
@@ -287,11 +290,19 @@ public actor MySQLDatabase {
             }
             if gate.isStopped { await gate.waitForCancellation() }
             if let connection { await connection.close() }
-            if gate.isStopped && !gate.confirmed { throw DatabaseError.cancellationUnconfirmed }
-            if canceled { throw DatabaseError.canceled }
-            if let known = error as? DatabaseError { throw known }
-            // Never return driver descriptions, server messages, SQL or credentials.
-            throw DatabaseError.mysqlConnectionFailed
+            throw failure(error, canceled: canceled, stopped: gate.isStopped, confirmed: gate.confirmed)
         }
+    }
+
+    /// Maps a worker failure to the public error. The original cause of our own limit aborts is kept
+    /// even if the follow-up KILL could not be confirmed.
+    static func failure(_ error: Error, canceled: Bool, stopped: Bool, confirmed: Bool) -> DatabaseError {
+        let known = error as? DatabaseError
+        if !canceled, let known, known == .resultTooLarge || known == .invalidText { return known }
+        if stopped && !confirmed { return .cancellationUnconfirmed }
+        if canceled { return .canceled }
+        if let known { return known }
+        // Never return driver descriptions, server messages, SQL or credentials.
+        return .mysqlConnectionFailed
     }
 }
