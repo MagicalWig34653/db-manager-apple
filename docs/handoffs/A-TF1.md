@@ -144,3 +144,23 @@ bei Übergabe aktiv, nicht vorweggenommen. Koordinator beobachtet den Abschluss.
 Keine lokalen Build-/Export-/Composerprozesse mehr aktiv. Eigene signierte lokale
 Artefakte bleiben für unabhängige Prüfung/konkrete Uploadentscheidung erhalten;
 keine fremden Ressourcen oder Systemrechte verändert. Kein Mainmerge vorgenommen.
+
+## Enger CI-Diagnosecheckpoint: Iconcompiler
+
+Der ursprüngliche Apple-Lauf39906842616 scheiterte unter Xcode26.3 beim
+CompileAssetCatalogVariant-Schritt für AppIcon.icon. Der veröffentlichte letzte
+60-Zeilen-Ausschnitt enthielt keine konkrete Compilerdiagnose; deshalb wird aus
+dem Versionsunterschied zu lokal27.1 allein keine Ursache behauptet.
+
+Neue enge Vorprüfung `sh scripts/check-icon.sh` kompiliert die echte unveränderte
+Composerquelle unmittelbar mit actool für macOS14 und iPad-Simulator17, bevor
+Swift-Abhängigkeiten gebaut werden. `check-apple.sh` veröffentlicht bei einem
+weiteren Buildfehler zusätzlich Fehlerzeilen mit Kontext. Keine Prüfung entfällt.
+Lokal bestanden beide Iconkompilationen einschließlich älterer Rasterfallbacks,
+Shellsyntax, Diffprüfung und Dokumentationsprüfung141/0. App-/Icon-/Xcode-/Paketbytes
+bleiben gegenüber dem geprüften Stand unverändert; bestehende signierte Artefakte
+werden weder überschrieben noch als neu erstellt behauptet.
+
+Die neu gestartete exakte CI ist Diagnose und noch kein behaupteter Erfolg.
+Die unabhängige Integrationsbedingung bleibt bis zum tatsächlich erfolgreichen
+nativen Lauf offen. Keine Upload-/Einreichungs-/OS-/Keychainaktion ausgeführt.

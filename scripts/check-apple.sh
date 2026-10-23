@@ -4,6 +4,7 @@ set -eu
 cd "$(dirname "$0")/.."
 check_dir=$(mktemp -d /tmp/dbmanager-apple-check.XXXXXX)
 trap 'rm -rf "$check_dir"' EXIT HUP INT TERM
+sh scripts/check-icon.sh
 python3 scripts/check-dependencies.py
 swift test --force-resolved-versions --scratch-path "$check_dir/swift" -j 4
 python3 scripts/check-calendar-vectors.py
@@ -13,6 +14,14 @@ for platform in macOS 'iOS Simulator'; do
       -destination "generic/platform=$platform" -derivedDataPath "$check_dir/xcode-$platform" \
       -clonedSourcePackagesDirPath "$check_dir/packages" -onlyUsePackageVersionsFromResolvedFile \
       CODE_SIGNING_ALLOWED=NO build > "$check_dir/xcode.log" 2>&1; then
+    python3 - "$check_dir/xcode.log" <<'PYERROR'
+from pathlib import Path
+import sys
+lines = Path(sys.argv[1]).read_text(errors="replace").splitlines()
+for position, line in enumerate(lines):
+    if "error:" in line.lower() or "com.apple.actool.errors" in line:
+        print("\n".join(lines[max(0, position - 3):position + 8]))
+PYERROR
     tail -n 60 "$check_dir/xcode.log"
     exit 1
   fi
