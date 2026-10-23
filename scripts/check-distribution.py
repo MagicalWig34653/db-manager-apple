@@ -17,8 +17,8 @@ resources = app / 'Contents/Resources' if mac else app
 info = plistlib.loads((app / 'Contents/Info.plist' if mac else app / 'Info.plist').read_bytes())
 assert info['CFBundleIdentifier'] == 'de.linolaske.dbmanager'
 assert info['CFBundleShortVersionString'] == '0.1.0'
-assert info['CFBundleVersion'] == '1'
-assert 'ITSAppUsesNonExemptEncryption' not in info, 'Owner export assessment remains an explicit gate'
+assert info['CFBundleVersion'] == '2'
+assert info.get('ITSAppUsesNonExemptEncryption') is True, 'Standard encryption usage must be declared'
 assert (resources / 'Assets.car').is_file(), 'Compiled icon catalog absent'
 if mac:
     assert info.get('CFBundleIconFile'), 'Older macOS fallback declaration absent'
