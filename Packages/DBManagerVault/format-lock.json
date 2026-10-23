@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/MagicalWig34653/db-manager",
+  "format_commit": "1a4eb3c",
+  "handoff_commit": "03bd3f4",
+  "schema_sha256": "b688656056fe2e23848ce17149bc817609c7369f230a3f49dd91f05db4d3f4dd",
+  "sha256": {
+    "Format/LICENSE": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+    "Format/contracts/vault-v1.schema.json": "b688656056fe2e23848ce17149bc817609c7369f230a3f49dd91f05db4d3f4dd",
+    "Format/contracts/fixtures/vault-v1/aad.json": "cfa880abc4b50e0a67bc71856b0fada8947d3553023115e970e6ddcfb9a04593",
+    "Format/contracts/fixtures/vault-v1/go/vault.json": "2f8d5255095360d6bc8b516cf8bf28e1fc25bb73fdb525ca1504486711430608",
+    "Format/contracts/fixtures/vault-v1/go/synthetic-secrets.json": "8fdd9e8f1648982f494ea4d5a0e21b9eac6ceadb36ff940fac5717f05c624dee",
+    "Format/contracts/fixtures/vault-v1/swift/vault.json": "d5accd00466c562460412020b9c876be2e674d571209e30f4da2e718b2158556",
+    "Format/contracts/fixtures/vault-v1/swift/synthetic-secrets.json": "6ccd5c050818f38729b23ea00628b587f3f7001384347eb14da22b31ceffe69e",
+    "Format/contracts/fixtures/vault-v1/README.md.txt": "580d30c41f707848db92a5d70bedbe199828a861ddc7cc5b6211cca26221edda",
+    "Format/docs/security/VAULT-FORMAT-V1.md.txt": "c5f0953981d5e07b023575e81bc1c7952f5749dce039e1f58948d9e8b6d7f3fe"
+  }
+}

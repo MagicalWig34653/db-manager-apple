@@ -1,0 +1,14 @@
+name: Native Vault Core
+on:
+  push:
+  pull_request:
+jobs:
+  isolated-vault:
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift --version
+      - run: python3 scripts/check-vault.py
