@@ -8,9 +8,10 @@ ab `e50d745`. Keine Produktänderungen durch den Reviewer.
 
 ## Urteil und Gate
 
-**Kein bestätigter Befund. A-TF1 ist fachlich als begrenzte TestFlightvorbereitung
-zur Leadintegration geeignet.** Die noch laufende exakte Apple-CI39906842616 muss
-vor abschließender Integration erfolgreich sein; kein vorweggenommener CI-Erfolg.
+**Kein bestätigter Befund. A-TF1 ist als begrenzte TestFlightvorbereitung
+zur Leadintegration freigegeben.** Das zunächst offene CI-Gate ist nach der
+unten unabhängig geprüften Host-/Diagnosekorrektur geschlossen; maßgeblicher
+freigegebener Quellpin ist nun `645c8c1b2dbd401410cdaf42afc0b221770f322e`.
 Kein Upload, keine Einreichung und keine Store-/TestFlightverarbeitungsfreigabe.
 Betreiberangaben zu Verschlüsselung, Privacy und TestFlightmetadaten bleiben vor
 Upload ausdrücklich offen. Der von Nutzerseite angelegte ASC-Eintrag „DB Manager“
@@ -89,3 +90,52 @@ lokalen Jobs mehr. Keine OS-/Keychain-/Account-/Profiländerungen, keine fremden
 Container und kein Host-Swarm berührt. Originale signierte Archive/IPA/PKG für den
 Eigentümer unverändert erhalten. Nächster Schritt: Lead kontrolliert verbleibende
 exakte Apple-CI und integriert bei Erfolg; Upload bleibt gesondert autorisiert.
+
+
+## Abschließender enger CI-Nachreview
+
+23.10.2026, nach tatsächlichem Abschluss der neuen Matrix. Geprüfter Sourcepin
+`645c8c1b2dbd401410cdaf42afc0b221770f322e` enthält Diagnosecommit `de58e92`;
+anschließender `6551a8aff75b80270562771354f21de54fcbea6d` ändert ausschließlich
+den Autorenhandoff. Der beim Erstreview offen gebliebene ursprüngliche Lauf ist
+kein weiterhin laufender oder bestandener Nachweis; die Fehlserie bleibt erhalten.
+
+Unabhängig erneut gelesen und geprüft:
+
+- Exakter Gitdiff von `b702051` nach `645c8c1` ist für Assets, Xcodeprojekt,
+  Sources, Package.swift, Package.resolved und Distribution vollständig leer.
+  Ursprüngliche Signatur-/Profile-/Icon-/Privacy-/Originalnoticebefunde gelten
+  daher für dieselben unveränderten Produktbytes; keine neuen Archive behauptet.
+- Änderung der nativen Workflowausführung ausschließlich Hostlabel macos-15 zu
+  macos-26 und zusätzliches sw_vers. Xcode26.3-Pfad bleibt fest, keine Preview-
+  Toolchain oder niedrigere Test-/Deploymentanforderung eingeführt.
+- Neuer check-icon.sh führt tatsächlich actool für macOS14 und iPad-Simulator17
+  auf der unveränderten echten Composerquelle aus, verlangt Assets.car und
+  bereinigt ausschließlich eigenen mktemp-Scratch. check-apple.sh ruft diese
+  zusätzliche Prüfung vor den bisherigen unverändert erhaltenen Prüfungen auf.
+- Fehlerextraktion ergänzt Kontextzeilen und belässt Fehlerexit sowie bisherige
+  Buildlogausgabe; keine Assertion/Plattform/Swiftprüfung entfernt. Beide neuen
+  Shellfassungen unabhängig mit sh -n geprüft. Keine erneute lokale Vollmatrix
+  ohne Produktänderung ausgeführt.
+- Tatsächliches öffentliches Fehlerlog39908555341 am Diagnosecommit gelesen:
+  dyld meldet fehlende CoreMedia-Symbole innerhalb der AssetRuntime-/AVFCore-
+  Hostkombination. Damit war das Versagen kein belegter JSON-/Layerfehler des
+  Composerprojekts. Der Erfolg des neuen Hosts beweist die gewählte funktionierende
+  Kombination, keine universelle Aussage über alle macOS15-Installationen.
+- Tatsächliches neues CI-Log geprüft: macOS26.6.2, Swift6.2.4, Xcode26.3(17C529),
+  beide actool-Preflights erfolgreich. 22 Swiftprüfungen, 1.008 Datums-/4.032
+  Timestampvektoren, 13 Abhängigkeitspins/Originalnotices sowie Mac- und generischer
+  iPad-Simulator-Build vollständig erfolgreich. Bekannte ohne Livefixtures
+  übersprungene Livetests werden damit nicht als neue DB-Livenachweise umgedeutet.
+- Alle drei IDs selbst gegen den exakten SHA und Terminalzustand geprüft:
+  [Apple39908768321](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39908768321),
+  [Vault39908768308](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39908768308)
+  und [Docs39908768380](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39908768380)
+  sind tatsächlich completed/success. Appleabschluss 06:15:33UTC.
+
+**Finales Urteil: unabhängiger Review ohne Findings abgeschlossen, technisches
+CI-Gate geschlossen. Integration des vollständigen A-TF1-Pakets bis zum exakten
+645c8c1-Pin einschließlich unverändertem Produkt und reinem Handoffnachtrag6551a8a
+ist freigegeben.** Keine Upload-/Einreichungsfreigabe und keine Erweiterung der
+bereits genannten Betreiber-, Privacy-/Export-, ASC-API-, Geräte- oder Laufzeitbeweise.
+Eigenes kurzes Syntaxprüfscratch entfernt; Originalartefakte unverändert erhalten.
