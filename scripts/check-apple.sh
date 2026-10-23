@@ -17,6 +17,12 @@ for platform in macOS 'iOS Simulator'; do
     exit 1
   fi
   python3 scripts/check-dependencies.py --products "$check_dir/xcode-$platform/Build/Products"
+  if [ "$platform" = macOS ]; then
+    product_dir=Debug
+  else
+    product_dir=Debug-iphonesimulator
+  fi
+  python3 scripts/check-distribution.py --app "$check_dir/xcode-$platform/Build/Products/$product_dir/DBManager.app"
   echo "Build bestanden: $platform"
 done
 python3 scripts/check-docs.py

@@ -5,6 +5,7 @@ import argparse
 from pathlib import Path
 import plistlib
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parent.parent
 parser = argparse.ArgumentParser()
@@ -27,9 +28,14 @@ if config.get('destination') != 'export' or config.get('method') != 'app-store-c
 command = ['xcodebuild', '-project', str(ROOT / 'DBManager.xcodeproj'), '-scheme', 'DBManager',
            '-configuration', 'Release', '-destination', 'generic/platform=' + ('iOS' if args.platform == 'ipad' else 'macOS'),
            '-derivedDataPath', str(output / 'DerivedData'), '-clonedSourcePackagesDirPath', str(output / 'Packages'),
-           '-onlyUsePackageVersionsFromResolvedFile', '-archivePath', str(archive)]
+           '-onlyUsePackageVersionsFromResolvedFile', '-archivePath', str(archive), '-jobs', '4']
 command += ['-allowProvisioningUpdates'] if args.provision else ['CODE_SIGNING_ALLOWED=NO']
 subprocess.run(command + ['archive'], cwd=ROOT, check=True)
+validation = [sys.executable, str(ROOT / 'scripts/check-distribution.py'), '--app',
+              str(archive / 'Products/Applications/DBManager.app')]
+if args.provision:
+    validation.append('--signed')
+subprocess.run(validation, cwd=ROOT, check=True)
 if args.export:
     subprocess.run(['xcodebuild', '-exportArchive', '-archivePath', str(archive), '-exportOptionsPlist', str(options),
                     '-exportPath', str(output / 'Export'), '-allowProvisioningUpdates'], cwd=ROOT, check=True)

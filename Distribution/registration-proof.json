@@ -1,0 +1,44 @@
+{
+  "source_commit": "e45069c629e55577db57087e361ae9d0371ed464",
+  "xcode": "27.1 (27A9275)",
+  "bundle_id": "de.linolaske.dbmanager",
+  "version": "0.1.0",
+  "build": "1",
+  "evidence": "Actual Apple-signed explicit provisioning profiles inside local Xcode App Store exports; no profile/key bytes published",
+  "platforms": [
+    {
+      "platform": "iPadOS",
+      "explicit_app_id": "J2DU2P47XW.de.linolaske.dbmanager",
+      "team": "J2DU2P47XW",
+      "profile_created_utc": "2026-10-23T05:29:43Z",
+      "profile_expires_utc": "2027-10-17T09:36:16Z",
+      "development_debug_allowed": false,
+      "local_app_store_export": "success",
+      "upload_performed": false
+    },
+    {
+      "platform": "macOS",
+      "explicit_app_id": "J2DU2P47XW.de.linolaske.dbmanager",
+      "team": "J2DU2P47XW",
+      "profile_created_utc": "2026-10-23T05:34:35Z",
+      "profile_expires_utc": "2027-10-17T09:36:16Z",
+      "development_debug_allowed": false,
+      "local_app_store_export": "success",
+      "upload_performed": false
+    }
+  ],
+  "artifacts": [
+    {
+      "platform": "iPadOS",
+      "file": "DBManager.ipa",
+      "bytes": 14725374,
+      "sha256": "cb9be4a57944c5d1a1395ffd590ce7974a6c478fb2decc6fee92cc53089fb34e"
+    },
+    {
+      "platform": "macOS",
+      "file": "DBManager.pkg",
+      "bytes": 22744566,
+      "sha256": "2ef0711e0a2fbc867710007b73bec2ae08acfb2f4628c028a32e8cd5c37e853b"
+    }
+  ]
+}

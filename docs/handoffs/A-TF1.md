@@ -82,3 +82,50 @@ Nutzer den ASC-NeueApp-Eintrag mit Bundle-ID de.linolaske.dbmanager fortsetzen.
 Die tatsächliche Auswahl im Browser ist kein hier automatisierter UI-Nachweis.
 Macarchive und erneuter finaler iPad-Archivstand mit vollständigen Metadaten laufen
 noch; erster Export ist Registrierungsnachweis, keine Uploadfreigabe.
+
+## Finaler lokaler Nachweis am eingefrorenen Appstand e45069c
+
+- Erneutes signiertes iPad-Releasearchive mit endgültigen Metadaten/Icon bestanden;
+  die anfängliche iPad-Orientierungswarnung durch explizite vier unterstützte
+  Ausrichtungen behoben. Letztes Archive ohne diese Warnung. Übrig nur erwartete
+  AppIntents-Metadata-Skipwarnung mangels AppIntentsabhängigkeit.
+- Native macOS-Releasearchive tatsächlich signiert bestanden, Universalbinary
+  x86_64+arm64. Tatsächliche Sandbox-, Networkclient- und ausgewählte-Dateien-
+  Entitlements aus exportierter Mac-App rückgelesen und geprüft.
+- Beide finalen **lokalen App-Store-Exports** bestanden: iPadIPA und MacPKG.
+  Beide ausschließlich lokal entpackt, nicht installiert/hochgeladen/eingereicht.
+  Strikte tatsächliche codesign-Prüfung, Team/Bundle-ID/Version/Build, PrivacyInfo,
+  kompilierte Assets.car und ältere-OS-Iconfallbacks bestanden.
+- Beide exportierten Apps enthalten explizite Apple-Distributionsprofile für
+  J2DU2P47XW.de.linolaske.dbmanager ohne Debugberechtigung. Öffentliche nicht geheime
+  [Registrierungsquittung](../../Distribution/registration-proof.json); keine
+  Profil-/Zertifikat-/Privatschlüsselbytes im Repository.
+- Jeweils13 Abhängigkeitspins und Originaltexte am tatsächlichen Archivprodukt
+  mit check-dependencies.py --products bestätigt. Keine Änderung am Paketbaum.
+- Tatsächliche Mac-ICNS-Fallbackgrafik extrahiert und visuell geprüft: aktuelles
+  Tabellengitter im Vordergrund. Renderreihenfolge des Composers geprüft/korrigiert,
+  finale Vorschauen in Assets/Previews entsprechen dem aktuellen Layerprojekt.
+- Neue Prüfung: scripts/check-distribution.py --app <app> --signed
+  --distribution-profile, auf beiden final entpackten Distributionapps bestanden.
+  Dies ist keine serverseitige ASC-/TestFlightverarbeitung oder Gerätefreigabe.
+
+Öffentliche exakte CI e45069c: Vault39906369410 und Docs39906369417 erfolgreich,
+Apple39906369396 bei diesem Checkpoint noch aktiv. Frühere4badb7e-Prüfungen ersetzen
+keinen Abschlussnachweis des letzten Commits. S2a-Main-Apple39903661074 inzwischen
+tatsächlich erfolgreich. Kein Uploadwerkzeug oder Uploadziel ausgeführt.
+
+Offene Freigaben: unabhängiger Review/Integration, finale öffentliche Apple-CI,
+Eigentümerauskunft zu Verschlüsselung/Privacy und App-Store-/TestFlightmetadaten,
+ASC-Apprecord im Browser sowie tatsächlicher späterer Upload nach ausdrücklichem
+Auftrag. Kein physischer iPadlauf oder interaktiver Store-/Signingnachweis behauptet.
+Lokale signierte Archive/Exports verbleiben nur im eigenen temporären Präfix
+zwecks enger unabhängiger Prüfung; alle eigenen Build-/Exportjobs beendet.
+
+Eigentümer meldet inzwischen den ASC-Apprecord „DB Manager“ als erstellt.
+Keine zweite Anlage. Der vorhandene Xcodeaccount belegt erfolgreiche Developer-
+Portal-/Distributionsauthentifizierung; eigenständiger lesender ASC-Apprecord-
+APIzugriff ist dadurch nicht nachgewiesen. Keine ASC-APIkeys/Passwörter extrahiert,
+kein Connector vorhanden. Appname/Plattformen/Versionsmetadaten im ASC daher bislang
+Eigentümerauskunft, nicht unabhängig per API rückgelesen. Kein Uploadauftrag daraus
+abgeleitet. Artefakthashes/Bytegrößen in registration-proof.json; konkrete lokale
+Dateien für den freizugebenden späteren Upload sind dem Koordinator genannt.
