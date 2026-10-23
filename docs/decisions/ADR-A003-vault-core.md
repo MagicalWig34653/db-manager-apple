@@ -109,7 +109,10 @@ oder privilegierte OSwriter, die Locks ignorieren, Lockinodes austauschen, Anker
 Prozessspeicher kontrollieren. Hash-/Rückleseprüfungen verhindern falsche Erfolgsmeldung
 für dabei erkannte geänderte Bytes; keine Racefreiheit gegen beliebige Änderung nach
 der letzten Prüfung oder nach erfolgreichem Commit. Private Modi sind kein belegter
-App-Sandbox-/FileProtection-/Backupschutz. `fsync`/Rename und echte Prozessabbrüche
+App-Sandbox-/FileProtection-/Backupschutz. Vorhandene erweiterte ACLs sind nicht
+geprüft; geprüft werden UID und
+POSIX-Modusbits. Ein tatsächlich abgeschotteter Appcontainer bleibt S2b-Gate.
+`fsync`/Rename und echte Prozessabbrüche
 beweisen kein Stromausfall-/Hardware-/Netzwerkfilesystemverhalten. Nur lokaler
 verwalteter Datenträger ist Arbeitsziel; kein Sync-/Netzlaufwerk freigegeben.
 
