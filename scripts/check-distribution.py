@@ -23,12 +23,16 @@ assert info['CFBundleVersion'] == args.expected_build
 assert info.get('ITSAppUsesNonExemptEncryption') is False, 'App must declare exempt encryption (key false)'
 assert (resources / 'Assets.car').is_file(), 'Compiled icon catalog absent'
 if mac:
+    assert info['LSMinimumSystemVersion'] == '26.0'
     assert info.get('CFBundleIconFile'), 'Older macOS fallback declaration absent'
 else:
-    assert info['UIDeviceFamily'] == [2]
+    assert info['UIDeviceFamily'] == [1, 2], 'App must target iPhone and iPad'
+    assert len(info.get('UISupportedInterfaceOrientations~iphone', [])) >= 1
+    assert info['MinimumOSVersion'] == '26.0'
     assert len(info.get('UISupportedInterfaceOrientations~ipad', [])) == 4
     assert info['CFBundleIcons~ipad']['CFBundlePrimaryIcon']['CFBundleIconName'] == 'AppIcon'
     assert (resources / 'AppIcon76x76@2x~ipad.png').is_file(), 'Older iPadOS fallback absent'
+    assert (resources / 'AppIcon60x60@2x.png').is_file(), 'Older iPhone fallback absent'
 privacy = plistlib.loads((resources / 'PrivacyInfo.xcprivacy').read_bytes())
 assert privacy['NSPrivacyTracking'] is False
 assert privacy['NSPrivacyCollectedDataTypes'] == []
