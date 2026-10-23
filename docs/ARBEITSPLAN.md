@@ -42,3 +42,13 @@ beim S2a-Agent. Reviewnachweise werden getrennt von ungeprüftem Core integriert
 Alte saubere A1-/A2-Worktrees bleiben Provenienz. Nur eigene kurzlebige Testressourcen,
 keine fremden Container/Geräte oder OS-Rechte ändern. Echte Geräte/Signing/alte OS/
 interaktive OS-UI ausdrücklich offen. Jobs vor Kontextwechsel im Handoff erfassen.
+
+## A-TF1: offenes CI-Hostgate
+
+Native CI39906842616 ist fehlgeschlagen; die schnelle unveränderte echte
+Iconvorprüfung39908555341 reproduziert AssetCatalogAgent-Runtimeabbruch und
+fehlende CoreMedia-/MediaToolbox-Symbole auf macOS15/Xcode26.3. Kontrollierter
+Hostwechsel auf macos-26 behält Xcode26.3 und sämtliche Produkt-/Icon-/Paketbytes
+sowie Mac-/iPad-Prüfungen bei; neuer tatsächlicher Erfolg bleibt abzuwarten.
+Fachreview59c7004 und vorhandene signierte Archive/Exporte bleiben Provenienz,
+keine Upload-/Einreichungsaktion oder vorweggenommene neue CI-Freigabe.

@@ -100,3 +100,13 @@ unabhängiger Review und finale öffentliche Apple-CI vor Integration offen.
 Nächster Schritt: A-TF1 unabhängig prüfen; A3/C-Export1 bleibt zugunsten Pages
 und TestFlight ausdrücklich aufgeschobener Vorschlag ohne Implementierung. [Arbeitsplan](ARBEITSPLAN.md),
 [Einrichtung](../EINRICHTUNG.md). Apple-Statuspflege ist für dieses Fortsetzungsfenster an den S2a-Agent delegiert.
+
+## A-TF1: offenes CI-Hostgate
+
+Native CI39906842616 ist fehlgeschlagen; die schnelle unveränderte echte
+Iconvorprüfung39908555341 reproduziert AssetCatalogAgent-Runtimeabbruch und
+fehlende CoreMedia-/MediaToolbox-Symbole auf macOS15/Xcode26.3. Kontrollierter
+Hostwechsel auf macos-26 behält Xcode26.3 und sämtliche Produkt-/Icon-/Paketbytes
+sowie Mac-/iPad-Prüfungen bei; neuer tatsächlicher Erfolg bleibt abzuwarten.
+Fachreview59c7004 und vorhandene signierte Archive/Exporte bleiben Provenienz,
+keine Upload-/Einreichungsaktion oder vorweggenommene neue CI-Freigabe.

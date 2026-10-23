@@ -164,3 +164,22 @@ werden weder überschrieben noch als neu erstellt behauptet.
 Die neu gestartete exakte CI ist Diagnose und noch kein behaupteter Erfolg.
 Die unabhängige Integrationsbedingung bleibt bis zum tatsächlich erfolgreichen
 nativen Lauf offen. Keine Upload-/Einreichungs-/OS-/Keychainaktion ausgeführt.
+
+## Kontrollierte CI-Hostkorrektur
+
+Die Diagnose am unveränderten Icon (Lauf39908555341, Commitde58e92) scheiterte
+innerhalb weniger Sekunden: AssetCatalogAgent-AssetRuntime beendet die Verbindung,
+vorher meldet dyld fehlende CoreMedia-/MediaToolbox-Symbole; Exit255 und
+IBPlatformToolFailureException. Kein dokumentierter JSON-/Layerfehler. Das ist
+ein konkreter Compiler-Runtimebefund auf dem verwendeten macOS15-Runner, kein
+Beweis einer allgemeinen Composerdatei-Inkompatibilität.
+
+Der kontrollierte Korrekturversuch ändert ausschließlich den nativen CI-Host auf
+macos-26 und protokolliert sw_vers. **Xcode26.3, Swift6.2.4 sowie alle Mac-/iPad-
+Builds und Prüfungen bleiben erhalten.** App-/Icon-/Paketbytes bleiben unverändert.
+Das [offizielle Runnerinventar](https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md)
+führt den weiterhin explizit gepinnten Xcode26.3-Pfad auch für diesen Host auf.
+Kein Wechsel auf Preview-Xcode, kein eigener Runner, kein Weglassen des Composer-
+Icons, keine Rücknahme von Produkt-/Deploymentzielen. Ob der Hostwechsel den
+belegten Runtimefehler behebt, entscheidet ausschließlich der neue echte CI-Lauf;
+vor dessen Erfolg keine Integrationsfreigabe. Die frühere Fehlserie bleibt sichtbar.
