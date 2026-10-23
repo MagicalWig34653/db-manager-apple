@@ -31,7 +31,7 @@ struct WorkbenchView: View {
             case .failure: model.error = "Die Datei konnte nicht ausgewählt werden."
             }
         }
-        .sheet(isPresented: $showingConnection) {
+        .sheet(isPresented: $showingConnection, onDismiss: { model.discardConnectionDraft() }) {
             ConnectionSheet(model: model) { showingConnection = false }
         }
         .sheet(isPresented: $showingNotices) {
@@ -57,9 +57,9 @@ struct WorkbenchView: View {
 
     private var actions: WorkbenchActions {
         WorkbenchActions(
-            openFile: { model.changeSource(.sqlite); importing = true },
+            openFile: { importing = true },
             createLocal: { model.createLocal() },
-            connectPostgres: { model.changeSource(.postgres); showingConnection = true },
+            connectPostgres: { showingConnection = true },
             execute: { model.execute() },
             cancel: { model.operation?.cancel() },
             closeSource: { model.close() },
@@ -148,9 +148,7 @@ struct WorkbenchView: View {
         .onChange(of: selectedObject) { _, id in
             guard !model.busy, let id, let object = model.objects.first(where: { $0.id == id }) else { return }
             show(object)
-            #if os(iOS)
-            selectedObject = nil  // allow tapping the same row again on iPhone/iPad
-            #endif
+            selectedObject = nil  // allow selecting the same row again to re-run it
         }
         .onChange(of: model.objects) { _, objects in
             if let id = selectedObject, !objects.contains(where: { $0.id == id }) { selectedObject = nil }
@@ -281,7 +279,7 @@ struct ConnectionSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Schließen", action: close) }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Verbinden", systemImage: "network") { model.connectPostgres() }
-                        .disabled(model.busy || model.fileName != nil)
+                        .disabled(model.busy || (model.source == .postgres && model.fileName != nil))
                 }
             }
             .fileImporter(isPresented: $importingCA, allowedContentTypes: [.data]) { result in

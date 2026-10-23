@@ -61,7 +61,7 @@ final class WorkbenchModel {
     }
 
     func selectCA(_ url: URL) {
-        guard source == .postgres, !busy, fileName == nil else { return }
+        guard !busy, source != .postgres || fileName == nil else { return }
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         do {
@@ -73,8 +73,13 @@ final class WorkbenchModel {
         } catch { caData = nil; caName = nil; self.error = "Die CA-Datei konnte nicht gelesen werden (höchstens 1 MiB)." }
     }
 
+    /// Switches to PostgreSQL only when the user actually connects; cancelling the sheet keeps the current source.
     func connectPostgres() {
-        guard source == .postgres, !busy else { return }
+        guard !busy else { return }
+        if source != .postgres {
+            source = .postgres
+            sql = "SELECT version() AS PostgreSQL"
+        }
         clearActive(); busy = true
         let settings = PostgresSettings(host: host, port: Int(port) ?? 0, database: databaseName,
                                         username: username, password: password, certificateAuthority: caData)
@@ -93,6 +98,9 @@ final class WorkbenchModel {
             }
         }
     }
+
+    /// Drops the unsent password draft, e.g. when the connection sheet is dismissed.
+    func discardConnectionDraft() { password = "" }
 
     func open(_ url: URL, create: Bool = false) {
         guard !busy else { return }

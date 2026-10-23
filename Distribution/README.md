@@ -7,7 +7,7 @@ Bundle-ID muss als explizite ID im Developeraccount registriert sein. Ein
 Wildcard-Developmentprofil reicht als Sichtbarkeitsbeleg nicht aus.
 
 ```sh
-python3 scripts/prepare-testflight.py --platform ipad --output-dir /tmp/db-manager-ipad-preflight
+python3 scripts/prepare-testflight.py --platform ios --output-dir /tmp/db-manager-ios-preflight
 python3 scripts/prepare-testflight.py --platform mac --output-dir /tmp/db-manager-mac-preflight
 ```
 

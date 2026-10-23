@@ -15,7 +15,7 @@ sh scripts/check-apple.sh
 Das Skript legt ein eigenes temporäres Buildverzeichnis an, führt Swift-Tests,
 macOS- und iOS-Simulator-Build (iPhone und iPad) aus und entfernt sein Buildverzeichnis danach.
 Signing ist dabei deaktiviert; der Simulator wird weder gestartet noch gestoppt.
-Ein Build mit Deploymentziel 14/17 belegt keinen Lauf auf diesen OS-Versionen.
+Ein Build mit Deploymentziel 26.0 (macOS, iOS, iPadOS; siehe ADR-A004) belegt keinen Lauf auf diesen OS-Versionen.
 
 Einzelbefehle, jeweils mit selbst gewähltem temporärem Buildverzeichnis:
 

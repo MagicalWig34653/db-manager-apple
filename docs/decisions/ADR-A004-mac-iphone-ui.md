@@ -52,6 +52,17 @@ CI-Lauf mit dieser Änderung steht aus.
 `check-distribution.py` verlangt weiterhin, dass eine eingebettete Backdeploy-Bibliothek einen Runpath hat;
 sie fehlt nun einfach.
 
+## Nachbesserungen aus dem unabhängigen Review (A5-review)
+
+- ⌘O und ⌘K lösen keinen Quellwechsel mehr aus; die Quelle wechselt erst bei erfolgreicher Dateiauswahl bzw. beim
+  tatsächlichen Verbinden. Abbrechen lässt Verbindung, SQL und CA unverändert.
+- Das Passwort-Draft wird beim Schließen des Verbindungssheets verworfen.
+- Objekte lassen sich auf macOS erneut anklicken (Auswahl wird zurückgesetzt).
+- Kopieren legt Zellwerte in die Systemablage (iOS: ggf. Universal Clipboard). Das ist nutzerausgelöst; die UI
+  weist in der Zeilenansicht darauf hin, die Datenschutzbeschreibung sollte es erwähnen.
+- Ältere ADRs und Status nennen 14/17 als abgelöst; `check-icon.sh` prüft iPhone, iPad und Mac mit 26.0;
+  `prepare-testflight.py --platform ios` (iPhone+iPad) ersetzt `ipad` (Alias bleibt).
+
 ## Offen
 
 Interaktive Mac-GUI, echtes iPhone/iPad, Tastaturverhalten auf Gerät, VoiceOver/Dynamic Type, Archive/Export mit

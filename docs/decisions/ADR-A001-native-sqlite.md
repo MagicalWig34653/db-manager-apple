@@ -1,7 +1,7 @@
 # ADR-A001: Erste native SQLite-Grundlage
 
 Status: als begrenzte Entwicklungsgrundlage nach unabhängiger QA akzeptiert, 20.10.2026.
-macOS14/iPadOS17 sind Deployment-Arbeitsziele, keine belegte Altgeräte-/Distributionsfreigabe.
+macOS14/iPadOS17 waren Deployment-Arbeitsziele (abgelöst durch 26.0, [ADR-A004](ADR-A004-mac-iphone-ui.md)), keine belegte Altgeräte-/Distributionsfreigabe.
 
 ## Kontext
 

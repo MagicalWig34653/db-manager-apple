@@ -157,3 +157,23 @@ func liveWorkbenchUsesDirectPostgresThenClearsFailedReplacement() async throws {
     await database.close()
 }
 #endif
+
+@MainActor
+@Test func connectingFromSqliteSwitchesSourceOnlyOnConnectAndDraftIsDiscardable() async throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let model = WorkbenchModel(localRoot: directory)
+    model.createLocal(); await model.operation?.value
+    let active = model.fileName
+    // Showing the connection sheet or editing the draft must not touch the active source.
+    model.password = "synthetic-draft"
+    #expect(model.source == .sqlite && model.fileName == active)
+    model.discardConnectionDraft()
+    #expect(model.password.isEmpty && model.fileName == active)
+    // Only an actual connect attempt switches the source.
+    model.host = "invalid/path"; model.databaseName = "synthetic"; model.username = "synthetic"
+    model.connectPostgres()
+    #expect(model.source == .postgres && model.fileName == nil)
+    await model.operation?.value
+    #expect(model.error != nil && model.fileName == nil && model.password.isEmpty)
+}

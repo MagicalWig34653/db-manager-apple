@@ -9,7 +9,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parent.parent
 parser = argparse.ArgumentParser()
-parser.add_argument('--platform', choices=['ipad', 'mac'], required=True)
+parser.add_argument('--platform', choices=['ios', 'ipad', 'mac'],
+                    help="ios = iPhone and iPad (universal, family 1,2); ipad = deprecated alias of ios", required=True)
 parser.add_argument('--output-dir', type=Path, required=True)
 parser.add_argument('--provision', action='store_true', help='Allow existing Xcode account provisioning and signing')
 parser.add_argument('--export', action='store_true', help='Locally export App Store artifact; requires --provision')
@@ -26,7 +27,7 @@ config = plistlib.loads(options.read_bytes())
 if config.get('destination') != 'export' or config.get('method') != 'app-store-connect':
     parser.error('Export configuration must remain local App Store export')
 command = ['xcodebuild', '-project', str(ROOT / 'DBManager.xcodeproj'), '-scheme', 'DBManager',
-           '-configuration', 'Release', '-destination', 'generic/platform=' + ('iOS' if args.platform == 'ipad' else 'macOS'),
+           '-configuration', 'Release', '-destination', 'generic/platform=' + ('macOS' if args.platform == 'mac' else 'iOS'),
            '-derivedDataPath', str(output / 'DerivedData'), '-clonedSourcePackagesDirPath', str(output / 'Packages'),
            '-onlyUsePackageVersionsFromResolvedFile', '-archivePath', str(archive), '-jobs', '4']
 command += ['-allowProvisioningUpdates'] if args.provision else ['CODE_SIGNING_ALLOWED=NO']

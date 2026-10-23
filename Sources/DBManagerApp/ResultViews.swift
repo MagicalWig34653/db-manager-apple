@@ -145,6 +145,10 @@ struct RowDetailView: View {
                     }
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                Text("Kopieren legt Werte in die Systemablage; auf Apple-Geräten kann sie geräteübergreifend geteilt werden.")
+                    .font(.caption2).foregroundStyle(.secondary).padding(8)
+            }
             .navigationTitle("Zeile \(index + 1)")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)

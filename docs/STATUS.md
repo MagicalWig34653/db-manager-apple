@@ -86,7 +86,7 @@ auf geeignetem signierten/provisionierten Host bleiben separat zu beweisen.
 Die neue Appsignierung schließt dieses Gate nicht automatisch. Kein produktiver
 InMemory-/Dateifallback. G-S2b/C-Export1/A3 bleiben eigene Pakete nach Beauftragung.
 
-macOS14/iPadOS17 sind Deploymentziele; echte Geräte, alte OS-Laufzeiten,
+Deploymentziel ist seit A5 (Branch `feat/mac-iphone-ui`, [ADR-A004](decisions/ADR-A004-mac-iphone-ui.md)) 26.0 für macOS/iOS/iPadOS statt 14/17, iPhone-Familie 1,2; echte Geräte, alte OS-Laufzeiten,
 interaktive OS-UI und Runtime-Sandboxdurchsetzung sind nicht durch Signatur oder
 Entitlements abgenommen. Kein nativer MySQL-/MariaDB-Adapter wegen belegtem
 TLS-Downgrade, kein SSH/HTTP-Backendclient/Passkey/CloudKit/Teamumfang. READ ONLY

@@ -127,7 +127,7 @@ ohne Überlauf behandelt; das erweitert nicht den gültigen Wertebereich des Ser
 Unbekannte Typen/Arrays/Intervalle bleiben Binärbytes samt OID-Metadaten;
 kein ungeprüftes Deuten binärer Extensiontypen als Text.
 
-macOS14/iPadOS17 bleiben Deploymentziele. Entwicklung benötigt nun Swift6.2/Xcode26.3
+macOS14/iPadOS17 waren Deploymentziele (abgelöst durch 26.0, [ADR-A004](ADR-A004-mac-iphone-ui.md)). Entwicklung benötigt nun Swift6.2/Xcode26.3
 oder neuer; lokaler tatsächlicher Stand Swift6.4/Xcode27.1. Geräte, signierte Sandbox,
 Distribution und interaktive OS-UI bleiben getrennte Gates. Die generierte Info.plist
 enthält eine deutsche `NSLocalNetworkUsageDescription` für bewusst gewählte LAN-

@@ -59,3 +59,14 @@ Aufgeteilt in `DBManagerApp.swift` (Scene, Menübefehle), `WorkbenchModel.swift`
 - Archive/Export mit iPhone-Familie, App-Store-Metadaten/iPhone-Screenshots, Buildnummer (3 bleibt) und
   `prepare-testflight.py` (Plattformname `ipad`) nicht angefasst; vor Upload höhere Buildnummer nötig.
 - Drag-and-drop von Dateien und Mac-Einstellungsfenster bewusst nicht umgesetzt.
+
+## Nachbesserung nach unabhängigem Review (A5-review, Urteil: Freigabe unter Auflagen)
+
+Behoben: M2 (⌘O/⌘K wechseln die Quelle erst bei Auswahl/Verbinden; neuer Test), L1 (Passwort-Draft beim Schließen
+des Sheets verworfen), L2 (Objekt erneut anklickbar), L3 (EINRICHTUNG, STATUS, ADR-A001/A002 verweisen auf 26.0;
+`check-icon.sh` prüft Mac, iPad und iPhone mit 26.0), L5 (Hinweis zur Systemablage in der Zeilenansicht und im ADR),
+I1 (`prepare-testflight.py --platform ios` für iPhone+iPad, `ipad` bleibt Alias; Buildnummer 3 unverändert, nichts
+archiviert oder hochgeladen). Erneut geprüft: `swift test` (17 Kern-, 8 App-Tests), `check-icon.sh`, generische
+macOS- und iOS-Simulator-Builds, `check-distribution.py`, `check-docs.py`. Die Verhaltensänderungen (Menüabbruch,
+Sheet) sind weiterhin nicht interaktiv bedient. Die CI-Aussage (M1) steht im Bericht des Leads bzw. im Commit-Log
+des Branches.
