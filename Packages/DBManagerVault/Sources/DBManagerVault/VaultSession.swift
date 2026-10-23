@@ -69,6 +69,10 @@ public actor VaultSession {
     public func beginMigration(source: Data, factor: UnlockFactor, newPassword: String) throws -> SetupMaterial {
         lock()
         let (_, _, values) = try VaultEditing.authenticated(source, factor: factor)
+        // Migration must not silently retain the old password, even with recovery-only unlock.
+        let retainedOldPassword = (try? VaultEditing.authenticated(source, factor: .password(newPassword))) != nil
+        try Task.checkCancellation()
+        guard !retainedOldPassword else { throw StorageError.factor }
         return try beginCreate(password: newPassword, payloads: values)
     }
 
@@ -198,10 +202,11 @@ public actor VaultSession {
         try change(prepared)
         try point(.afterPrepared)
         guard try matches(store.read(), prepared.active) else { throw StorageError.conflict }
-        try store.install(pending.temporaryName)
+        try store.install(pending.temporaryName, expectedDigest: AtomicStore.digest(data))
         try point(.afterRename)
         try store.syncDirectory()
         try point(.afterDirectorySync)
+        guard try matches(store.read(), prepared.pending?.prepared) else { throw StorageError.conflict }
         var committed = try next(prepared)
         committed.active = prepared.pending?.prepared; committed.pending = nil
         try change(committed)

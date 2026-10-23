@@ -4,6 +4,7 @@ import Foundation
 
 enum VaultEditing {
     static func authenticated(_ data: Data, factor: UnlockFactor) throws -> (VaultFile, Data, [Data]) {
+        try Task.checkCancellation()
         let v = try VaultCodec.parse(data)
         let payloads: [Data]
         let root: Data
@@ -25,7 +26,8 @@ enum VaultEditing {
                 return try VaultCodec.unseal(SymmetricKey(data: key), aad: VaultCodec.aad(v, purpose: 4, entry: entry),
                     nonce: entry.payload_nonce, ciphertext: entry.payload)
             }
-        } catch { throw StorageError.factor }
+        } catch is CancellationError { throw CancellationError() }
+        catch { throw StorageError.factor }
         try Task.checkCancellation()
         return (v, root, payloads)
     }

@@ -109,7 +109,9 @@ public enum VaultCodec {
     }
     private static let kdfLock = NSLock()
     static func passwordKey(_ password: String, kdf: KDF) throws -> SymmetricKey {
+        try Task.checkCancellation()
         kdfLock.lock(); defer { kdfLock.unlock() }
+        try Task.checkCancellation()
         let bytes = Data(password.utf8)
         guard !bytes.isEmpty, bytes.count <= 1024 else { throw VaultError.unlock }
         let salt = try decode(kdf.salt, count: 16)

@@ -46,6 +46,10 @@ func prepared(_ root: URL, _ anchor: SyntheticAnchor) async throws -> (VaultSess
         #expect(try VaultCodec.unlock(data, password: password) == expected)
         #expect(try VaultCodec.unlock(data, recovery: recovery) == expected)
     }
+    let notices = try VaultLicenses.originalTexts()
+    #expect(notices.count == 2)
+    #expect(notices["AGPL-3.0-only.txt"]!.contains("GNU AFFERO GENERAL PUBLIC LICENSE"))
+    #expect(notices["Argon2-LICENSE.txt"]!.contains("Apache License"))
 }
 
 @Test func setupRequiresIndependentReadbacksAndPrivateFiles() async throws {
@@ -146,6 +150,8 @@ func prepared(_ root: URL, _ anchor: SyntheticAnchor) async throws -> (VaultSess
     let oldAnchor = SyntheticAnchor(); let (source,oldRecovery) = try await prepared(sourceRoot, oldAnchor)
     let original = try Data(contentsOf: sourceRoot.appendingPathComponent(syntheticSlot + ".vault")); await source.lock()
     let targetAnchor = SyntheticAnchor(); let target = VaultSession(root: targetRoot, slot: syntheticSlot, anchor: targetAnchor)
+    do { _ = try await target.beginMigration(source: original, factor: .recovery(oldRecovery), newPassword: syntheticPassword); Issue.record("Retained old password during migration") } catch {}
+    #expect(try targetAnchor.load(slot: syntheticSlot) == nil)
     let setup = try await target.beginMigration(source: original, factor: .recovery(oldRecovery), newPassword: "new synthetic independent password")
     #expect(setup.vaultID != (try VaultCodec.parse(original)).vault_id)
     #expect(setup.recovery != oldRecovery)
@@ -231,4 +237,49 @@ func prepared(_ root: URL, _ anchor: SyntheticAnchor) async throws -> (VaultSess
     try await session.open(factor: .recovery(recovery))
     #expect(try await session.records()[0].payload == originalPayload)
     await session.lock()
+}
+
+@Test func modifiedStagingFileNeverReturnsSuccessfulCommit() async throws {
+    for phase in [VaultFailurePoint.afterPrepared, .afterDirectorySync] {
+    let root = try privateRoot(); defer { try? FileManager.default.removeItem(at: root) }
+    let anchor = SyntheticAnchor(); let (initial,recovery) = try await prepared(root, anchor)
+    let original = try Data(contentsOf: root.appendingPathComponent(syntheticSlot + ".vault")); await initial.lock()
+    let session = VaultSession(root: root, slot: syntheticSlot, anchor: anchor, failureInjection: { point in
+        if point == phase {
+            let name = phase == .afterPrepared ? try anchor.load(slot: syntheticSlot)!.pending!.temporaryName : syntheticSlot + ".vault"
+            try Data("synthetic damaged stage".utf8).write(to: root.appendingPathComponent(name))
+        }
+    })
+    try await session.open(factor: .recovery(recovery))
+    do { try await session.update([]); Issue.record("Reported corrupt staging data committed") } catch {}
+    if phase == .afterPrepared { #expect(try Data(contentsOf: root.appendingPathComponent(syntheticSlot + ".vault")) == original) }
+    #expect(try anchor.load(slot: syntheticSlot)?.active?.generation == 1)
+    await session.lock()
+    }
+}
+
+@Test func inputAndFileBoundsUnsafeModesAndManagedNamesAreEnforced() async throws {
+    let root = try privateRoot(); defer { try? FileManager.default.removeItem(at: root) }
+    let anchor = SyntheticAnchor()
+    let badName = VaultSession(root: root, slot: "../escape", anchor: anchor)
+    do { _ = try await badName.beginCreate(password: syntheticPassword, payloads: []); Issue.record("Accepted unmanaged name") } catch {}
+    let session = VaultSession(root: root, slot: syntheticSlot, anchor: anchor)
+    for values in [Array(repeating: Data(), count: 65), [Data(repeating: 1, count: 65537)]] {
+        do { _ = try await session.beginCreate(password: syntheticPassword, payloads: values); Issue.record("Accepted payload bounds") } catch {}
+    }
+    #expect(try anchor.load(slot: syntheticSlot) == nil)
+    #expect(try FileManager.default.contentsOfDirectory(atPath: root.path).isEmpty)
+    let (active,recovery) = try await prepared(root, anchor); await active.lock()
+    let path = root.appendingPathComponent(syntheticSlot + ".vault")
+    let old = try Data(contentsOf: path)
+    try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: path.path)
+    do { try await session.open(factor: .recovery(recovery)); Issue.record("Accepted public file mode") } catch {}
+    try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path.path)
+    let handle = try FileHandle(forWritingTo: path); try handle.truncate(atOffset: UInt64(VaultCodec.maxFileBytes + 1)); try handle.close()
+    do { try await session.open(factor: .recovery(recovery)); Issue.record("Accepted oversize file") } catch {}
+    try old.write(to: path)
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: root.path)
+    do { try await session.open(factor: .recovery(recovery)); Issue.record("Accepted public root mode") } catch {}
+    try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: root.path)
+    try await session.open(factor: .recovery(recovery)); await session.lock()
 }

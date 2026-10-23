@@ -26,7 +26,7 @@ final class AtomicStore {
             guard fstat(descriptor, &metadata) == 0, metadata.st_uid == geteuid(),
                   metadata.st_mode & 0o777 == 0o700 else { throw StorageError.invalid }
             directory = descriptor; descriptor = -1
-            lockFile = openat(directory, ".vault-lock", O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, mode_t(0o600))
+            lockFile = openat(directory, ".vault-lock", O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK, mode_t(0o600))
             guard lockFile >= 0 else { throw StorageError.io }
             try check(lockFile)
             guard flock(lockFile, LOCK_EX | LOCK_NB) == 0 else { throw StorageError.busy }
@@ -96,8 +96,8 @@ final class AtomicStore {
         guard fsync(fd) == 0 else { throw StorageError.io }
         try syncDirectory()
     }
-    func install(_ name: String) throws {
-        guard validTemporary(name), try read(name) != nil else { throw StorageError.invalid }
+    func install(_ name: String, expectedDigest: String) throws {
+        guard validTemporary(name), let bytes = try read(name), Self.digest(bytes) == expectedDigest else { throw StorageError.conflict }
         guard renameat(directory, name, directory, filename) == 0 else { throw StorageError.io }
     }
     func syncDirectory() throws { guard fsync(directory) == 0 else { throw StorageError.io } }
