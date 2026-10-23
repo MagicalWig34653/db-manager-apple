@@ -52,3 +52,12 @@ Hostwechsel auf macos-26 behält Xcode26.3 und sämtliche Produkt-/Icon-/Paketby
 sowie Mac-/iPad-Prüfungen bei; neuer tatsächlicher Erfolg bleibt abzuwarten.
 Fachreview59c7004 und vorhandene signierte Archive/Exporte bleiben Provenienz,
 keine Upload-/Einreichungsaktion oder vorweggenommene neue CI-Freigabe.
+
+### A-TF1: tatsächlicher Hostfix-Abschluss
+
+Exakter Korrekturcommit645c8c1: Apple39908768321, Vault39908768308 und
+Docs39908768380 sind inzwischen success. Derselbe Xcode26.3 auf macos-26
+kompiliert echte Composericons und beide Appziele; App-/Icon-/Paketbytes und
+vorhandene signierte Exporte unverändert. Frühere Fehler bleiben historische
+Befunde. Enger unabhängiger CI-Diffreview und Mainintegration stehen noch aus;
+keine Upload-/Store-/Gerätefreigabe. Details und Einschränkungen im A-TF1-Handoff.

@@ -183,3 +183,31 @@ Kein Wechsel auf Preview-Xcode, kein eigener Runner, kein Weglassen des Composer
 Icons, keine Rücknahme von Produkt-/Deploymentzielen. Ob der Hostwechsel den
 belegten Runtimefehler behebt, entscheidet ausschließlich der neue echte CI-Lauf;
 vor dessen Erfolg keine Integrationsfreigabe. Die frühere Fehlserie bleibt sichtbar.
+
+## CI-Hostgate tatsächlich bestanden
+
+Am exakten Korrekturcommit645c8c1b2dbd401410cdaf42afc0b221770f322e sind alle drei
+öffentlichen Prüfungen erfolgreich:
+
+- [Apple39908768321](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39908768321): completed/success am23.10.2026 um06:15:33UTC.
+- [Vault39908768308](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39908768308): success.
+- [Dokumentation39908768380](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39908768380): success.
+
+Der vollständige echte Lauf bestätigt Xcode26.3 auf macos-26, erfolgreiche direkte
+actool-Kompilation für macOS14 und iPad-Simulator17 mit Rasterfallbacks, den Swift-
+Testlauf mit22 Fällen (sechs Livefälle ohne Fixtures ausdrücklich übersprungen),
+1.008 Datums-/4.032 Timestampvektoren,13 Abhängigkeits-/Originaltextpins sowie
+beide tatsächlichen Mac-/iPad-Simulator-Appbuilds und Distribution-Metadatenchecks.
+Dokumentationsprüfung141/0. Keine neue Live-PG-, Geräte- oder Storelaufzeit daraus.
+
+Damit ist der kontrollierte Hostwechsel als Korrektur des beobachteten CI-Runtime-
+fehlers bestätigt. Keine allgemeine Aussage über jede macOS15-Installation oder
+über eine unbewiesene JSONformat-Inkompatibilität. Frühere fehlgeschlagene Läufe
+bleiben als solche erhalten. App-/Icon-/Xcode-/Paket-/Distributionquellen sind
+bytegleich zum bereits unabhängig geprüften b702051-Stand. Vorhandene signierte
+Originalarchive/IPA/PKG wurden weder verändert noch neu erzeugt. Die unabhängige
+Nachprüfung der beiden reinen CI-/Diagnostikcommits de58e92 und645c8c1 sowie die
+Integration bleiben beim Koordinator/Reviewer. Kein Upload, keine Einreichung,
+keine OS-/Account-/Keychainänderung. Eigener read-only Watcher beendet, keine
+lokalen Build-/Export-/Compilerjobs mehr aktiv. Dieser reine Nachtrag startet
+keine weitere unveränderte native Vollmatrix.
