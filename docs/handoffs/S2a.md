@@ -117,10 +117,10 @@ Buildscratch und eigene zusätzliche KDF-Testcaches anschließend entfernt.
 Öffentliche Jobs am exakten Codekandidaten:
 
 - [Dokumentation39901527960](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39901527960): erfolgreich.
-- [Native Vault Core39901528027](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39901528027): zum Checkpoint noch in Arbeit, kein behaupteter Erfolg.
-- [Apple-Build39901527835](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39901527835): zum Checkpoint noch in Arbeit. Dieser isolierte Branch beruht auf A1; keine neue A2-Prüfung daraus ableiten.
+- [Native Vault Core39901528027](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39901528027): abschließend erfolgreich am exakten Codekandidaten.
+- [Apple-Build39901527835](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39901527835): abschließend erfolgreich am exakten Codekandidaten. Dieser isolierte Branch beruht auf A1; keine neue A2-Prüfung daraus ableiten.
 
-Verbleibende Jobs sind diese öffentlichen CIs und die unabhängige QA. **Keine
+Alle drei öffentlichen CIs abschließend grün; verbleibend ist die unabhängige QA. **Keine
 eigenen lokalen Prüfprozesse, Fixturecontainer oder Simulatoren aktiv.**
 UID/0700/0600-Modusbits sind geprüft; erweiterte ACLs, tatsächlicher abgeschotteter
 Appcontainer und OS-Anker nicht. Vor Setupbestätigung existieren bereits nicht
