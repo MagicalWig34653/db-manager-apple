@@ -96,3 +96,29 @@ Skript selbst lief daher nie komplett durch.
 - `test-mysql.py` startet nur eigene, per Label `dbmanager.task=A4` markierte Container und
   löscht sie am Ende (nach dem letzten Lauf keine A4-Container vorhanden). Docker-Images
   verbleiben im lokalen Cache.
+
+## Review-Auflagen (Nachbesserung nach A4-Review (`docs/handoffs/A4-review.md` auf Branch `review/a4-mysql`))
+
+- F1: Vor und nach dem TLS-Aufbau muss die Eingangswarteschlange leer sein
+  (`requireNoQueuedData`, im Eventloop unmittelbar vor dem Einbau des TLS-Handlers); sonst
+  `mysqlProtocolError`. Test mit EmbeddedChannel. Ein Bytes-Eintreffen nach dem Einbau landet
+  im TLS-Handler und scheitert dort.
+- F2: `KILL QUERY` nutzt `SELECT CONNECTION_ID()` nach der Anmeldung statt der Greeting-ID.
+- F3: `MySQLSettings` und `MySQLConnectionConfig` geben in `description`, `String(reflecting:)`
+  und `dump` nichts preis. Test.
+- F4: Wechsel des Auth-Plugins gegenüber dem Greeting (z. B. caching_sha2 auf native) nur bei
+  aktivem verifiziertem TLS, Antwort bleibt ein Scramble. Bewusste Restschwächung: Ein
+  kompromittierter, aber zertifikatsgültiger Server kann ein schwächeres Scramble verlangen.
+  Kein Einzeltest über Fakeserver, nur Code und Live-Anmeldungen.
+- F5: Eigene Limit-Abbrüche (`resultTooLarge`, `invalidText`) behalten ihre Ursache, auch wenn
+  das nachfolgende `KILL` nicht bestätigt wird (`MySQLDatabase.failure`, Test). Nutzerabbruch
+  bleibt `cancellationUnconfirmed`. Die Wartezeit des Kill-Kanals (bis 2 s zusätzlich) bleibt.
+- F6: Abbruchprobe läuft jetzt gegen MariaDB und MySQL 8.4. ERR-Pakete statt Spaltendefinition
+  oder EOF werden als Serverfehler gemeldet. Der Katalog ist auf 10.000 Objekte begrenzt;
+  darüber `resultTooLarge` (kein Teilkatalog), Paginierung offen.
+- Angriffsharness aus dem Review (`scripts/review-a4-fakeserver.py`,
+  `Tests/DBManagerCoreTests/MySQLReviewAttackTests.swift`) unverändert übernommen. Die Tests
+  sind über `DBM_A4R_DIR` gesteuert und laufen ohne Variable nur als reine Parser-Tests.
+  Aufruf wie im Review beschrieben; der Fakeserver-Lauf wurde nach den Fixes nicht wiederholt.
+- Prüfstand nach den Fixes: `scripts/test-mysql.py` bestanden (Livesuite einschließlich
+  Abbruchprobe gegen beide Server), dazu die Läufe unten im Abschnitt zuvor erneut.

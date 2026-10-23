@@ -15,7 +15,10 @@ public enum MySQLTransportSecurity: Sendable, Equatable {
     case plaintextLoopbackDevelopmentOnly
 }
 
-struct MySQLConnectionConfig: Sendable {
+struct MySQLConnectionConfig: Sendable, CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
+    var description: String { "MySQLConnectionConfig(<redacted>)" }
+    var debugDescription: String { description }
+    var customMirror: Mirror { Mirror(self, children: ["redacted": true]) }
     let host: String
     let port: Int
     let database: String
@@ -27,7 +30,7 @@ struct MySQLConnectionConfig: Sendable {
 
 /// Inbound side of the channel. Reads are demand driven: after two queued chunks auto-read is
 /// paused, so a hostile or fast server cannot make the client buffer unbounded data.
-private final class MySQLInboundHandler: ChannelInboundHandler, @unchecked Sendable {
+final class MySQLInboundHandler: ChannelInboundHandler, @unchecked Sendable {
     typealias InboundIn = ByteBuffer
     private let lock = NSLock()
     private var chunks: [ByteBuffer] = []
@@ -75,6 +78,13 @@ private final class MySQLInboundHandler: ChannelInboundHandler, @unchecked Senda
         tls?.fail(stored)
     }
 
+    /// STARTTLS-injection guard: anything queued before TLS is active is attacker-controlled
+    /// (a real server sends nothing until it sees the ClientHello) and aborts the connection.
+    func requireNoQueuedData() throws {
+        lock.lock(); defer { lock.unlock() }
+        guard chunks.isEmpty else { throw DatabaseError.mysqlProtocolError }
+    }
+
     func setTLSPromise(_ promise: EventLoopPromise<Void>) {
         lock.lock()
         if let failure { lock.unlock(); promise.fail(failure); return }
@@ -116,7 +126,6 @@ final class MySQLConnection: @unchecked Sendable {
     private var assembler = MySQLPacketAssembler()
     private(set) var greeting: MySQLGreeting?
     private(set) var tlsActive = false
-    var threadID: UInt32 { greeting?.threadID ?? 0 }
     var isMariaDB: Bool { greeting?.isMariaDB ?? false }
 
     private init(channel: Channel, inbound: MySQLInboundHandler) {
@@ -188,16 +197,21 @@ final class MySQLConnection: @unchecked Sendable {
             try await writePacket(Self.preamble(flags: flags))
             // The server sends nothing until it sees the TLS ClientHello.
             guard assembler.isEmpty else { throw DatabaseError.mysqlProtocolError }
+            try inbound.requireNoQueuedData()
             let promise = channel.eventLoop.makePromise(of: Void.self)
             inbound.setTLSPromise(promise)
             do {
                 let host = config.host
-                try await channel.eventLoop.submit { [channel] in
+                try await channel.eventLoop.submit { [channel, inbound] in
+                    // Runs on the event loop: no read can slip in between this check and the TLS handler.
+                    try inbound.requireNoQueuedData()
                     try channel.pipeline.syncOperations.addHandler(
                         NIOSSLClientHandler(context: context, serverHostname: host), position: .first)
                 }.get()
                 try await promise.futureResult.get()
+            } catch let known as DatabaseError { throw known
             } catch { throw DatabaseError.mysqlConnectionFailed }
+            try inbound.requireNoQueuedData()
             tlsActive = true
         }
         var response = Self.preamble(flags: flags)
@@ -221,7 +235,12 @@ final class MySQLConnection: @unchecked Sendable {
             case 0xFE:
                 packet.moveReaderIndex(forwardBy: 1)
                 guard let name = packet.readMySQLNulTerminated(maxLength: 64) else { throw DatabaseError.mysqlProtocolError }
-                plugin = String(decoding: name, as: UTF8.self)
+                let requested = String(decoding: name, as: UTF8.self)
+                // A switch away from the plugin announced in the unauthenticated greeting is only
+                // acceptable inside verified TLS (e.g. caching_sha2_password -> mysql_native_password);
+                // the response is still a scramble, never the clear password.
+                guard requested == plugin || tlsActive else { throw DatabaseError.mysqlUnsupportedAuth }
+                plugin = requested
                 scramble = packet.readBytes(length: packet.readableBytes) ?? []
                 if scramble.last == 0 { scramble.removeLast() }
                 guard let next = MySQLAuth.response(plugin: plugin, password: config.password, scramble: scramble) else {
@@ -285,12 +304,15 @@ final class MySQLConnection: @unchecked Sendable {
         guard let count = first.readMySQLLengthEncodedInteger(), count > 0, count <= 1024 else { throw DatabaseError.mysqlProtocolError }
         var bytes = 256
         for _ in 0..<count {
-            let definition = try MySQLColumnDefinition.parse(try await readPacket(maxPayload: 65_536), maxNameBytes: limits.maxCellBytes)
+            let packet = try await readPacket(maxPayload: 65_536)
+            if packet.getInteger(at: packet.readerIndex, as: UInt8.self) == 0xFF { throw Self.serverError(MySQLErrorPacket.parse(packet)) }
+            let definition = try MySQLColumnDefinition.parse(packet, maxNameBytes: limits.maxCellBytes)
             result.columns.append(definition)
             bytes += definition.name.utf8.count + 64
         }
         guard bytes <= limits.maxResultBytes else { throw DatabaseError.resultTooLarge }
         let eof = try await readPacket(maxPayload: 65_536)
+        if eof.getInteger(at: eof.readerIndex, as: UInt8.self) == 0xFF { throw Self.serverError(MySQLErrorPacket.parse(eof)) }
         guard eof.getInteger(at: eof.readerIndex, as: UInt8.self) == 0xFE, eof.readableBytes < 9 else { throw DatabaseError.mysqlProtocolError }
         while true {
             try Task.checkCancellation()
@@ -315,6 +337,15 @@ final class MySQLConnection: @unchecked Sendable {
             guard bytes <= limits.maxResultBytes else { throw DatabaseError.resultTooLarge }
             result.rows.append(cells)
         }
+    }
+
+    /// Authenticated thread id for `KILL QUERY`; the greeting's id is unauthenticated.
+    func authenticatedConnectionID() async throws -> UInt32 {
+        let small = QueryLimits(maxRows: 2, maxCellBytes: 32, maxResultBytes: 4096, timeout: 5)
+        let result = try await query("SELECT CONNECTION_ID()", limits: small)
+        guard result.rows.count == 1, result.rows[0].count == 1, let text = result.rows[0][0].value,
+              let id = UInt32(text) else { throw DatabaseError.mysqlProtocolError }
+        return id
     }
 
     static func serverError(_ packet: MySQLErrorPacket) -> DatabaseError {

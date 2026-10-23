@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import Foundation
 import NIOCore
+import NIOEmbedded
 import Testing
 @testable import DBManagerCore
 
@@ -135,6 +136,37 @@ private func column(_ type: UInt8, charset: UInt16 = 45, flags: UInt16 = 0) -> M
     #expect(throws: DatabaseError.resultTooLarge) { try MySQLValues.cell(Array(repeating: 65, count: 9), column: column(253), maxBytes: 8) }
 }
 
+@Test func mysqlPreTLSQueuedBytesAbortTheConnection() throws {
+    // STARTTLS injection guard (review F1): data queued before TLS is attacker controlled.
+    let channel = EmbeddedChannel()
+    let handler = MySQLInboundHandler()
+    try channel.pipeline.syncOperations.addHandler(handler)
+    try handler.requireNoQueuedData()
+    try channel.writeInbound(ByteBuffer(bytes: [7, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0]))
+    #expect(throws: DatabaseError.mysqlProtocolError) { try handler.requireNoQueuedData() }
+    _ = try? channel.finish()
+}
+
+@Test func mysqlSettingsAndConfigRedactSecretsInReflection() throws {
+    let settings = MySQLSettings(host: "db.example.test", database: "d", username: "user-secret-name", password: "hunter2-secret")
+    let config = try settings.configuration(timeout: 1)
+    for text in [String(describing: settings), String(reflecting: settings), String(describing: config), String(reflecting: config),
+                 { var out = ""; dump(settings, to: &out); return out }(), { var out = ""; dump(config, to: &out); return out }()] {
+        #expect(!text.contains("hunter2") && !text.contains("user-secret-name") && !text.contains("db.example.test"))
+    }
+}
+
+@Test func mysqlFailureMappingKeepsOriginalCauseOfLimitAborts() {
+    // Review F5: a failed follow-up KILL must not hide resultTooLarge / invalidText.
+    #expect(MySQLDatabase.failure(DatabaseError.resultTooLarge, canceled: false, stopped: true, confirmed: false) == .resultTooLarge)
+    #expect(MySQLDatabase.failure(DatabaseError.invalidText, canceled: false, stopped: true, confirmed: false) == .invalidText)
+    // A user cancellation with unconfirmed KILL is still reported honestly.
+    #expect(MySQLDatabase.failure(DatabaseError.resultTooLarge, canceled: true, stopped: true, confirmed: false) == .cancellationUnconfirmed)
+    #expect(MySQLDatabase.failure(CancellationError(), canceled: true, stopped: true, confirmed: true) == .canceled)
+    #expect(MySQLDatabase.failure(DatabaseError.mysqlFailed(1064), canceled: false, stopped: false, confirmed: true) == .mysqlFailed(1064))
+    #expect(MySQLDatabase.failure(CancellationError(), canceled: false, stopped: false, confirmed: true) == .mysqlConnectionFailed)
+}
+
 // MARK: Live tests against disposable fixtures (scripts/test-mysql.py)
 
 private let liveEnabled = ProcessInfo.processInfo.environment["DBM_A4_MARIA_TLS_PORT"] != nil
@@ -232,8 +264,9 @@ private func mysqlLiveSettings(_ port: String = "DBM_A4_MARIA_TLS_PORT", host: S
         await verified.close()
     }
 
-    @Test(.enabled(if: liveEnabled)) func liveLimitsCancellationAndPhysicalRelease() async throws {
-        let settings = try #require(try mysqlLiveSettings())
+    @Test(.enabled(if: liveEnabled), arguments: ["DBM_A4_MARIA_TLS_PORT", "DBM_A4_MYSQL_TLS_PORT"])
+    func liveLimitsCancellationAndPhysicalRelease(portVariable: String) async throws {
+        let settings = try #require(try mysqlLiveSettings(portVariable))
         let database = MySQLDatabase()
         _ = try await database.open(settings)
         let truncated = try await database.execute("SELECT n FROM probe.numbers", limits: QueryLimits(maxRows: 2))
