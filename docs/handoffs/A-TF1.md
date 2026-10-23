@@ -71,3 +71,14 @@ Geräte/OSdialoge und vollständige ASC-Metadaten sind beim frühen Checkpoint o
 Lokale Logs/Archive enthalten Signing-/Profilinformationen und bleiben außerhalb
 Git. Keine fremden Profile/Items/Truststores/Systemrechte verändert. Provisioning
 nur über vorhandenen autorisierten Account; keine Schlüssel exportiert.
+
+## Explizite Registrierung tatsächlich bestätigt
+
+Lokaler App-Store-Export des ersten signierten iPadarchivs erfolgreich, ohne Upload.
+Xcode hat über den vorhandenen Account ein explizites Distributionsprofil mit
+App-ID J2DU2P47XW.de.linolaske.dbmanager erzeugt, CreationDate23.10.2026
+05:29:43UTC, Plattform iOS, get-task-allow=false. Kein Wildcard. Damit kann der
+Nutzer den ASC-NeueApp-Eintrag mit Bundle-ID de.linolaske.dbmanager fortsetzen.
+Die tatsächliche Auswahl im Browser ist kein hier automatisierter UI-Nachweis.
+Macarchive und erneuter finaler iPad-Archivstand mit vollständigen Metadaten laufen
+noch; erster Export ist Registrierungsnachweis, keine Uploadfreigabe.
