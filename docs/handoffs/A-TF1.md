@@ -129,3 +129,18 @@ kein Connector vorhanden. Appname/Plattformen/Versionsmetadaten im ASC daher bis
 Eigentümerauskunft, nicht unabhängig per API rückgelesen. Kein Uploadauftrag daraus
 abgeleitet. Artefakthashes/Bytegrößen in registration-proof.json; konkrete lokale
 Dateien für den freizugebenden späteren Upload sind dem Koordinator genannt.
+
+## Öffentliche Reviewübergabe
+
+Eingefrorener Gesamtkandidat b7020517d6431a852f61188f70c90e495534bdd2,
+App-/Iconbytes unverändert seit e45069c; danach ausschließlich Prüfskriptintegration,
+Registrierungsquittung und Dokumentation. Dokumentation140/0, Diffprüfung sauber,
+Shell-/Python-Syntax geprüft. Exakte CIs:
+[Docs39906842633](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39906842633)
+bestanden;
+[Apple39906842616](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39906842616)
+und [Vault39906842798](https://github.com/MagicalWig34653/db-manager-apple/actions/runs/39906842798)
+bei Übergabe aktiv, nicht vorweggenommen. Koordinator beobachtet den Abschluss.
+Keine lokalen Build-/Export-/Composerprozesse mehr aktiv. Eigene signierte lokale
+Artefakte bleiben für unabhängige Prüfung/konkrete Uploadentscheidung erhalten;
+keine fremden Ressourcen oder Systemrechte verändert. Kein Mainmerge vorgenommen.
