@@ -75,7 +75,7 @@ private let live = attackDir != nil
     @Test func malicious() async throws {
         var out: [String] = []
         let plain = MySQLTransportSecurity.plaintextLoopbackDevelopmentOnly
-        for m in ["hdr_huge", "badseq", "stall", "rows_endless", "bigcell", "bigcell2", "colcount", "zerocols", "drip", "invalid_utf8", "shortrow", "errpacket", "infile", "rows_fat"] {
+        for m in ["hdr_huge", "badseq", "stall", "rows_endless", "bigcell", "bigcell2", "colcount", "zerocols", "drip", "invalid_utf8", "shortrow", "errpacket", "infile", "rows_fat", "idstall"] {
             let r = await outcome("mal_" + m, host: "127.0.0.1", roots: nil, security: plain, timeout: 3,
                                   limits: QueryLimits(maxRows: 1000, timeout: 3), sql: "SELECT mal")
             out.append("\(m): \(r)")

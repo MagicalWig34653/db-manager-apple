@@ -132,3 +132,42 @@ vertraut).
 `DBM_A4R_DIR=<dir> swift test --force-resolved-versions --filter Review`; Ergebnisse in
 `<dir>/report-*.txt` und `<dir>/log-*.json` (Serverseite). Die Logs werden erst nach der
 Client-Wartezeit geschrieben.
+
+## Nachreview (24.10.2026) zu `4faa2e6`
+
+Geprüft: `feat/mysql-adapter` @ `4faa2e6` (in diesen Branch gemerged), Läufe nacheinander
+bei hoher Hostlast. Urteil: **freigabefähig** als nicht UI-eingebundener Core-Baustein; keine
+neuen kritischen oder hohen Befunde. Offen nur die unten genannten niedrigen Punkte.
+
+Läufe: `swift test` mit `DBM_A4R_DIR` (Fakeserver gegen die gefixte Version): 37 + 5 Tests
+bestanden; `scripts/test-mysql.py` (Wegwerf-Container, danach 0 Container): 37 + 5 bestanden,
+inkl. Abbruchprobe gegen MariaDB und MySQL 8.4; `check-dependencies.py` 13 Pins;
+`check-docs.py` 157 (Apple) / 388 Dateien (Root-ADR-Branch), 0 Fehler; `xcodebuild` macOS und
+iOS Simulator BUILD SUCCEEDED. Erneut nur Hostproblem: Codesign-"detritus" beim ersten Build,
+behoben durch `xattr -cr .build/out`.
+
+| Befund | Status | Beleg |
+| --- | --- | --- |
+| F1 Pre-TLS-Queue | geschlossen | Code: `requireNoQueuedData()` vor dem Handler-Einbau, nochmals auf dem Eventloop unmittelbar davor (atomar zur Lesesicht) und nach dem TLS-Aufbau. EmbeddedChannel-Test schlägt fehl, wenn der Aufruf fehlt (prüft den Guard selbst, nicht den Handshake-Aufruf). Fakeserver `inject:*` (je 20 Läufe, 6 Zeitpunkte): nie akzeptiert; bei Injektion direkt nach dem Greeting jetzt überwiegend `mysqlProtocolError` (früher auch Verbindungsfehler). |
+| F2 Thread-ID | geschlossen | `SELECT CONNECTION_ID()` nach Anmeldung; `threadID` aus dem Greeting entfernt. |
+| F3 Redaktion | geschlossen | Test prüft `describing`, `reflecting`, `dump` auf Host, Benutzer, Passwort. |
+| F4 Plugin-Wechsel | geschlossen, Restschwäche ehrlich | Wechsel nur bei aktivem TLS; Klartext-Switch und Nicht-Greeting-Wechsel ohne TLS abgelehnt (Fakeserver: 0 Byte). Kompromittierter zertifikatsgültiger Server kann ein Scramble (kein Klartext) eines schwächeren Plugins verlangen; im Handoff dokumentiert, ebenso dass kein Einzeltest existiert. |
+| F5 Ursache | geschlossen | Fakeserver zeigt jetzt `resultTooLarge`/`invalidText` statt `cancellationUnconfirmed`; Unit-Test `failure(...)`. |
+| F6 | geschlossen | ERR in Spalten/EOF wird Serverfehler; Abbruchprobe läuft gegen beide Server; Katalogobergrenze dokumentiert (Paginierung offen). |
+
+Regression: keine gefunden; alle früheren Angriffsergebnisse (TLS-Downgrade 0 Byte, Zertifikats-
+und Hostnamenfälle, Full-Auth nur über TLS, Parser-Fälle) unverändert. Doku: Handoff beschreibt
+Fixes sachlich; der dortige Hinweis, der Fakeserver-Lauf sei nach den Fixes nicht wiederholt
+worden, ist durch diesen Nachreview erledigt.
+
+Neue Befunde:
+
+**N1 (Niedrig) Deadline wird bei hängendem Server während `CONNECTION_ID` überschritten.**
+Fakeserver `mal_idstall` (antwortet nie auf `SELECT CONNECTION_ID()`), Timeout 3 s: Rückkehr
+mit `canceled` nach ca. 10,5 s (zum Vergleich hängende Nutzabfrage: 5,2 s). Terminiert, aber
+ohne Garantie der Nutzerfrist; der Pfad `authenticatedConnectionID` läuft vor dem
+Cancel-Handler und ohne eigenes Zeitlimit (`timeout: 5` in den Limits wird von `query` nicht
+erzwungen). Fix: Abfrage in den abbrechbaren Bereich ziehen bzw. am Gate per Frist begrenzen.
+
+**N2 (Info)** Der Fakeserver-Harness musste angepasst werden (Antwort auf `CONNECTION_ID`,
+neuer Modus `idstall`); Änderungen liegen im Review-Branch.

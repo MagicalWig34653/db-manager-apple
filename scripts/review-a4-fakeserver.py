@@ -96,6 +96,9 @@ def serve_query_loop(sock, mode, handler):
         except Exception: return
         text = q[1:].decode("utf8", "replace")
         if text.startswith(("SET ", "START ", "COMMIT")): sock.sendall(pkt(1, OK())); continue
+        if "CONNECTION_ID" in text and mode.endswith("idstall"): time.sleep(30); return
+        if "CONNECTION_ID" in text:
+            sock.sendall(pkt(1, lenenc(1)) + pkt(2, coldef(b"c", 8)) + pkt(3, EOF) + pkt(4, lstr(b"4242")) + pkt(5, EOF)); continue
         if "information_schema" in text:
             sock.sendall(pkt(1, lenenc(3)) + pkt(2, coldef(b"s")) + pkt(3, coldef(b"n")) + pkt(4, coldef(b"k")) + pkt(5, EOF) + pkt(6, EOF)); continue
         handler(sock, text); return
@@ -137,7 +140,7 @@ def handler_for(mode):
     return dict(hdr_huge=hdr_huge, badseq=badseq, stall=stall,
                 rows_endless=rows(10**7, b"x" * 100), bigcell=bigcell, bigcell2=bigcell2, colcount=colcount,
                 zerocols=zerocols, drip=drip, invalid_utf8=invalid_utf8, shortrow=nulbig, errpacket=errpacket,
-                infile=multi_loop, rows_fat=rows(10**6, b"y" * 60000))[mode]
+                infile=multi_loop, rows_fat=rows(10**6, b"y" * 60000), idstall=stall)[mode]
 
 def FORGED():
     f = pkt(3, OK()) + pkt(1, OK()) * 4
@@ -254,7 +257,7 @@ modes = (["nossl", "plain_fullauth", "plain_switch_clear", "tls_good_fullauth", 
          + ["switch_" + p for p in ("mysql_clear_password", "mysql_native_password", "sha256_password", "client_ed25519", "mysql_old_password")]
          + ["inject:-1", "inject:0", "inject:0.0005", "inject:0.002", "inject:0.005", "inject:0.02"]
          + ["mal_" + m for m in ("hdr_huge", "badseq", "stall", "rows_endless", "bigcell", "bigcell2", "colcount", "zerocols", "drip",
-                                  "invalid_utf8", "shortrow", "errpacket", "infile", "rows_fat")])
+                                  "invalid_utf8", "shortrow", "errpacket", "infile", "rows_fat", "idstall")])
 ports = {}
 for m in modes:
     for f in W.glob(f"log-{m}.json"): f.unlink()
