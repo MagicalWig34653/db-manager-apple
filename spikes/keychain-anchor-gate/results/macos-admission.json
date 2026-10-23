@@ -1,0 +1,20 @@
+{
+  "account": "synthetic-8BA64436-B7FA-4226-8213-55E2C3C84770",
+  "cas_tested": false,
+  "cleanup_needed": false,
+  "create_status": -34018,
+  "created_confirmed": false,
+  "data_protection_explicit": true,
+  "gate": "blocked_os_admission",
+  "interaction_allowed": false,
+  "os_lock_tested": false,
+  "own_host_signing": {
+    "Signature": "adhoc",
+    "TeamIdentifier": "not set"
+  },
+  "service": "org.dbmanager.synthetic-anchor-gate.37D5D8E3-5443-4CC3-BCC5-D3264767184A",
+  "synchronizable_requested": false,
+  "synthetic_only": true,
+  "system": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "uncertain_ack_tested": false
+}
