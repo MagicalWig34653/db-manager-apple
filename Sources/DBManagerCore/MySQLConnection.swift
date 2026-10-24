@@ -256,11 +256,13 @@ final class MySQLConnection: @unchecked Sendable {
         response += Array(plugin.utf8) + [0]
         try await writePacket(response)
         // Authentication loop: OK, ERR, auth switch, or caching_sha2 more-data.
-        for _ in 0..<4 {
+        var awaitingPublicKey = false
+        for _ in 0..<6 {
             var packet = try await readPacket(maxPayload: 65_536)
-                switch packet.getInteger(at: packet.readerIndex, as: UInt8.self) {
+            switch packet.getInteger(at: packet.readerIndex, as: UInt8.self) {
             case 0x00: return
-            case 0xFF: throw DatabaseError.mysqlConnectionFailed
+            case 0xFF:
+                throw DatabaseError.mysqlConnectionFailed
             case 0xFE:
                 packet.moveReaderIndex(forwardBy: 1)
                 guard let name = packet.readMySQLNulTerminated(maxLength: 64) else { throw DatabaseError.mysqlProtocolError }
@@ -277,13 +279,26 @@ final class MySQLConnection: @unchecked Sendable {
                 try await writePacket(next)
             case 0x01:
                 packet.moveReaderIndex(forwardBy: 1)
+                if awaitingPublicKey {
+                    awaitingPublicKey = false
+                    let pem = packet.readBytes(length: packet.readableBytes) ?? []
+                    try await writePacket(try MySQLRSA.encryptPassword(password: config.password, nonce: scramble, publicKeyPEM: pem))
+                    continue
+                }
                 switch packet.readInteger(as: UInt8.self) {
                 case 0x03: continue              // fast authentication succeeded; OK follows
                 case 0x04:
-                    // Full caching_sha2 authentication. The clear password only ever travels inside
-                    // verified TLS; without TLS we refuse instead of using the RSA key exchange.
-                    guard tlsActive else { throw DatabaseError.mysqlUnsupportedAuth }
-                    try await writePacket(config.password + [0])
+                    // Full caching_sha2 authentication, exactly like the official clients: inside any TLS
+                    // session the server expects the clear password (verified TLS: protected; unverified TLS:
+                    // protected only against passive observers, the explicit user choice). Without TLS the clear
+                    // password is never sent: the server's RSA key is requested and the password is sent
+                    // RSA-OAEP encrypted (an unauthenticated key: protection against passive observers only).
+                    if tlsActive {
+                        try await writePacket(config.password + [0])
+                    } else {
+                        try await writePacket([0x02])
+                        awaitingPublicKey = true
+                    }
                 default: throw DatabaseError.mysqlProtocolError
                 }
             default: throw DatabaseError.mysqlProtocolError

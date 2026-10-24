@@ -141,7 +141,7 @@ Fallback. Die Loopback-Entwicklungsoption ist ersetzt.
 - Eine CA-Datei zusammen mit `.unverifiedTLS` oder `.plaintext` wird abgelehnt (Widerspruch),
   nicht stillschweigend ignoriert. `MySQLTransportSecurity.allCases`, `.warning`, `.usesTLS` und
   `.verifiesServerIdentity` erlauben der UI eine klare Auswahl und Warnanzeige.
-- Passwortschutz ohne TLS: Das Passwort verlässt den Client nur als Scramble
+- (Überholt durch den Abschnitt "Klarstellung" unten.) Passwortschutz ohne TLS: Das Passwort verlässt den Client nur als Scramble
   (`mysql_native_password`, `caching_sha2_password` Fast-Auth, auch per Auth-Switch zwischen diesen
   beiden). `caching_sha2` Full-Auth (Server verlangt das Klartextpasswort) wird ohne TLS mit
   `mysqlUnsupportedAuth` abgelehnt; der RSA-Public-Key-Austausch ist **nicht** umgesetzt (würde
@@ -177,3 +177,39 @@ danach), `swift test` 38 + 5 bestanden, `check-dependencies.py`, `check-docs.py`
 macOS und iOS Simulator erfolgreich. Fakeserver-Lauf: `nossl` mit `.verifiedTLS` und
 `.unverifiedTLS` je 0 Clientbytes, `plain_fullauth` und `plain_switch_clear` abgelehnt, idstall
 `canceled` nach 3,1 s.
+
+## Klarstellung des Nutzers (24.10.2026): MySQL/MariaDB mit und ohne TLS, niemand wird ausgesperrt
+
+ADR-0007 ist vom Nutzer **akzeptiert** (Root-Repo). Warnungen sind Hinweise, keine Sperren.
+
+- `caching_sha2_password` Full-Auth funktioniert jetzt in allen drei Modi:
+  - Innerhalb einer TLS-Sitzung (`.verifiedTLS` und `.unverifiedTLS`) erwartet der Server das
+    Klartextpasswort; es geht durch die TLS-Sitzung. Ein RSA-Austausch wird dort vom echten Server
+    nicht angeboten (MySQL 8.4 beantwortete die Schlüsselanfrage in TLS mit Access denied), deshalb
+    sendet der Client in `.unverifiedTLS` das Passwort durch die ungeprüfte TLS-Sitzung.
+  - Ohne TLS (`.plaintext`): Anforderung des öffentlichen RSA-Schlüssels (0x02), Passwort plus NUL
+    mit der Nonce verknüpft und per RSA-OAEP (SHA-1) verschlüsselt (`MySQLRSA.swift`, Security-
+    Framework, macOS/iOS-Systembestandteil, keine neue Abhängigkeit, kein Lizenzeintrag nötig). Das
+    Klartextpasswort wird nie ohne TLS gesendet.
+  - Strenge Prüfung des Schlüssels: PEM (SPKI oder PKCS#1), nur rsaEncryption, DER-Längen begrenzt,
+    Modul 2048 bis 8192 Bit und ungerade, Exponent >= 65537, Gesamtgröße <= 4096 Byte, Passwort
+    muss in die OAEP-Kapazität passen.
+- Ehrliche Grenze: Der Schlüssel kommt über denselben ungeschützten Kanal. Ein aktiver Angreifer
+  kann seinen eigenen Schlüssel unterschieben und erhält das Passwort. Schutz nur gegen passive
+  Beobachter, im ADR (3a) so benannt, einschließlich Offline-Ratenangriffen und erzwungenem
+  Wechsel auf `mysql_native_password` in beiden Nicht-Verifiziert-Modi (N3).
+- Kein stiller Fallback: nur die gewählten Modi; fehlt `CLIENT_SSL` bei TLS-Modus, Abbruch vor
+  jedem Authentifizierungsbyte (unverändert getestet).
+- Tests: Unit (RSA-Roundtrip mit selbst entschlüsselnder Gegenstelle, beide PEM-Formen, Nonce-XOR,
+  kaputte/zu kleine/zu große/falsche Schlüssel, gerader Modul, kleiner Exponent, Längenangaben,
+  zu langes Passwort) und Live gegen MySQL 8.4 mit frischen Konten `plain_probe` (`.plaintext`,
+  RSA), `plain_probe2` (`.unverifiedTLS`), `plain_probe3` (`.verifiedTLS`) sowie falsches Passwort
+  über den RSA-Pfad abgelehnt.
+- Doku N3/N4 behoben (ADR-0007 Regeln 1/3/4, Abschnitt 3a, Risiken, Abschnitt 6).
+- Nicht getestet: Servervarianten mit eigenem RSA-Schlüsselpfad/Größen, MySQL 8.0, Percona,
+  RSA-Pfad gegen aktiv schlüsselunterschiebenden Server (per Definition wirkungslos geschützt).
+
+Prüfstand dieser Änderung: `test-mysql.py` bestanden (40 Tests, 0 A4-Container danach),
+`swift test` 40 + 5, `check-dependencies.py`, `check-docs.py`, `xcodebuild` macOS und iOS Simulator
+erfolgreich. Fakeserver-Harness nach dieser Änderung nicht erneut gelaufen (letzter Lauf: Stand
+`227b44d`).
