@@ -3,6 +3,7 @@ import Foundation
 import NIOCore
 import NIOEmbedded
 import NIOSSL
+import Security
 import Testing
 @testable import DBManagerCore
 
@@ -177,6 +178,69 @@ private func column(_ type: UInt8, charset: UInt16 = 45, flags: UInt16 = 0) -> M
     #expect(MySQLDatabase.failure(CancellationError(), canceled: false, stopped: false, confirmed: true) == .mysqlConnectionFailed)
 }
 
+// MARK: RSA key exchange for caching_sha2_password full authentication
+
+private func derLength(_ n: Int) -> [UInt8] { n < 128 ? [UInt8(n)] : n < 256 ? [0x81, UInt8(n)] : [0x82, UInt8(n >> 8), UInt8(n & 0xFF)] }
+private func der(_ tag: UInt8, _ body: [UInt8]) -> [UInt8] { [tag] + derLength(body.count) + body }
+private func pem(_ label: String, _ der: [UInt8]) -> [UInt8] {
+    Array("-----BEGIN \(label)-----\n\(Data(der).base64EncodedString(options: [.lineLength64Characters, .endLineWithLineFeed]))\n-----END \(label)-----\n".utf8)
+}
+private func spkiPEM(pkcs1: [UInt8]) -> [UInt8] {
+    let algorithm = der(0x30, der(0x06, [0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01]) + [0x05, 0x00])
+    return pem("PUBLIC KEY", der(0x30, algorithm + der(0x03, [0] + pkcs1)))
+}
+private func rsaKey(bits: Int) throws -> (priv: SecKey, pkcs1: [UInt8]) {
+    let attrs: [CFString: Any] = [kSecAttrKeyType: kSecAttrKeyTypeRSA, kSecAttrKeySizeInBits: bits]
+    let priv = try #require(SecKeyCreateRandomKey(attrs as CFDictionary, nil))
+    let pub = try #require(SecKeyCopyPublicKey(priv))
+    return (priv, Array(try #require(SecKeyCopyExternalRepresentation(pub, nil)) as Data))
+}
+
+@Test func mysqlRSAPasswordEncryptionRoundTripsAndNeverContainsClearPassword() throws {
+    let key = try rsaKey(bits: 2048)
+    let nonce = Array(1...20 as ClosedRange<UInt8>)
+    let password = Array("public-a4-fixture".utf8)
+    for encoded in [spkiPEM(pkcs1: key.pkcs1), pem("RSA PUBLIC KEY", key.pkcs1)] {
+        let cipher = try MySQLRSA.encryptPassword(password: password, nonce: nonce, publicKeyPEM: encoded)
+        #expect(cipher.count == 256 && !Data(cipher).contains(Data(password)))
+        let plain = try #require(SecKeyCreateDecryptedData(key.priv, .rsaEncryptionOAEPSHA1, Data(cipher) as CFData, nil)) as Data
+        #expect(Array(plain) == MySQLRSA.xorWithNonce(password: password, nonce: nonce))
+        // Receiver side: XOR again and strip the NUL gives back the password.
+        let restored = Array(plain).enumerated().map { $0.element ^ nonce[$0.offset % nonce.count] }
+        #expect(restored == password + [0])
+    }
+    // Empty password still produces a valid message (single NUL).
+    #expect(try MySQLRSA.encryptPassword(password: [], nonce: nonce, publicKeyPEM: spkiPEM(pkcs1: key.pkcs1)).count == 256)
+}
+
+@Test func mysqlRSARejectsBrokenSmallOrOversizedKeysAndMessages() throws {
+    let good = try rsaKey(bits: 2048)
+    let nonce = Array(1...20 as ClosedRange<UInt8>)
+    func encrypt(_ pem: [UInt8], password: [UInt8] = [1]) throws -> [UInt8] { try MySQLRSA.encryptPassword(password: password, nonce: nonce, publicKeyPEM: pem) }
+    // Too small key (1024 bits).
+    let small = try rsaKey(bits: 1024)
+    #expect(throws: DatabaseError.mysqlUnsupportedAuth) { try encrypt(spkiPEM(pkcs1: small.pkcs1)) }
+    // Garbage, truncated, wrong labels, wrong algorithm OID, trailing data.
+    #expect(throws: DatabaseError.mysqlProtocolError) { try encrypt(Array("not a key".utf8)) }
+    #expect(throws: DatabaseError.mysqlProtocolError) { try encrypt([]) }
+    let valid = spkiPEM(pkcs1: good.pkcs1)
+    #expect(throws: DatabaseError.mysqlProtocolError) { try encrypt(Array(valid.prefix(valid.count / 2))) }
+    #expect(throws: DatabaseError.mysqlProtocolError) { try encrypt(pem("CERTIFICATE", good.pkcs1)) }
+    #expect(throws: DatabaseError.mysqlProtocolError) { try encrypt(pem("PUBLIC KEY", der(0x30, der(0x30, der(0x06, [0x2A, 0x03]) + [0x05, 0x00]) + der(0x03, [0] + good.pkcs1)))) }
+    #expect(throws: DatabaseError.mysqlProtocolError) { try encrypt(pem("RSA PUBLIC KEY", good.pkcs1 + [0])) }
+    // Even modulus, tiny exponent, huge length claims.
+    let evenModulus = der(0x30, der(0x02, [0] + Array(repeating: 0xFE, count: 256)) + der(0x02, [1, 0, 1]))
+    #expect(throws: DatabaseError.mysqlProtocolError) { try encrypt(pem("RSA PUBLIC KEY", evenModulus)) }
+    #expect(throws: DatabaseError.mysqlProtocolError) { try encrypt(pem("RSA PUBLIC KEY", [0x30, 0x82, 0xFF, 0xFF, 0x02])) }
+    #expect(throws: DatabaseError.mysqlProtocolError) { try encrypt(Array(repeating: 0x41, count: 5000)) }
+    let e3 = der(0x30, der(0x02, [0] + Array(repeating: 0xFF, count: 256)) + der(0x02, [3]))
+    #expect(throws: DatabaseError.mysqlUnsupportedAuth) { try encrypt(pem("RSA PUBLIC KEY", e3)) }
+    // Password too long for the key (OAEP-SHA1 capacity is 256 - 42 bytes).
+    #expect(throws: DatabaseError.mysqlUnsupportedAuth) { try encrypt(valid, password: Array(repeating: 65, count: 215)) }
+    #expect(throws: Never.self) { _ = try encrypt(valid, password: Array(repeating: 65, count: 213)) }
+    #expect(throws: DatabaseError.mysqlProtocolError) { try MySQLRSA.encryptPassword(password: [1], nonce: [], publicKeyPEM: valid) }
+}
+
 // MARK: Live tests against disposable fixtures (scripts/test-mysql.py)
 
 private let liveEnabled = ProcessInfo.processInfo.environment["DBM_A4_MARIA_TLS_PORT"] != nil
@@ -281,15 +345,25 @@ private func mysqlLiveSettings(_ port: String = "DBM_A4_MARIA_TLS_PORT", host: S
         // (3) plaintext: works on a server without TLS (any host by design), session is unencrypted.
         let plain = try #require(try mysqlLiveSettings("DBM_A4_MARIA_PLAIN_PORT", roots: nil, security: .plaintext))
         #expect(try await cipher(plain).isEmpty)
-        // Scramble-only: a caching_sha2 account that never authenticated needs full authentication, which would
-        // reveal the clear password and is refused without TLS.
-        let fresh = MySQLSettings(host: "localhost", port: try #require(ProcessInfo.processInfo.environment["DBM_A4_MYSQL_TLS_PORT"].flatMap(Int.init)),
-                                  database: "probe", username: "plain_probe", password: "public-a4-fixture", transportSecurity: .plaintext)
-        await #expect(throws: DatabaseError.mysqlUnsupportedAuth) { try await MySQLDatabase().open(fresh) }
-        // The very same account works through verified TLS (full authentication inside TLS).
-        let viaTLS = try #require(try mysqlLiveSettings("DBM_A4_MYSQL_TLS_PORT"))
-        _ = try await MySQLDatabase().open(MySQLSettings(host: viaTLS.host, port: viaTLS.port, database: "probe", username: "plain_probe",
-                                                         password: "public-a4-fixture", certificateAuthority: viaTLS.certificateAuthority))
+        // A caching_sha2 account that never authenticated needs full authentication: inside TLS (verified or not)
+        // the clear password goes through the TLS session; without TLS it is sent RSA-OAEP encrypted
+        // (public key requested from the server), never in clear.
+        let port = try #require(ProcessInfo.processInfo.environment["DBM_A4_MYSQL_TLS_PORT"].flatMap(Int.init))
+        let ca = try #require(ProcessInfo.processInfo.environment["DBM_A4_CA_FILE"].map { try Data(contentsOf: URL(fileURLWithPath: $0)) })
+        // plain_probe / plain_probe2 are distinct fresh accounts so each full authentication really happens.
+        for (mode, user) in [(MySQLTransportSecurity.plaintext, "plain_probe"), (.unverifiedTLS, "plain_probe2")] {
+            let fresh = MySQLSettings(host: "localhost", port: port, database: "probe", username: user, password: "public-a4-fixture", transportSecurity: mode)
+            let database = MySQLDatabase()
+            _ = try await database.open(fresh)
+            #expect(try await database.execute("SELECT 1").rows[0][0].value == "1")
+            await database.close()
+        }
+        // A third fresh account through verified TLS (clear password inside the verified channel).
+        _ = try await MySQLDatabase().open(MySQLSettings(host: "localhost", port: port, database: "probe", username: "plain_probe3",
+                                                         password: "public-a4-fixture", certificateAuthority: ca))
+        // Wrong password is still refused over the RSA path.
+        let wrong = MySQLSettings(host: "localhost", port: port, database: "probe", username: "plain_probe", password: "wrong", transportSecurity: .plaintext)
+        await #expect(throws: DatabaseError.mysqlConnectionFailed) { try await MySQLDatabase().open(wrong) }
     }
 
     @Test(.enabled(if: liveEnabled)) func liveServerWithoutTLSIsRefusedInBothTLSModes() async throws {
