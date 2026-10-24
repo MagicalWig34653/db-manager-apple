@@ -215,7 +215,7 @@ def handle_conn(sock, mode):
             ts = CTX[tlsname].wrap_socket(sock, server_side=True)
         except Exception as e:
             log(mode, {"tls": "handshake-failed", "why": type(e).__name__ + ":" + str(e)[:80]}); return
-        log(mode, {"tls": "established"})
+        log(mode, {"tls": "established", "cipher": ts.cipher()[0], "version": ts.version()})
         ts.settimeout(2.0)
         try:
             seq, resp = recvpkt(ts, 2)

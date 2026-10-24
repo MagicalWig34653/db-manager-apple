@@ -58,6 +58,10 @@ private let live = attackDir != nil
         for p in ["mysql_clear_password", "mysql_native_password", "sha256_password", "client_ed25519", "mysql_old_password"] {
             rec("switch_" + p, await outcome("switch_" + p)); rec("switch_" + p + ".log", events("switch_" + p))
         }
+        // Second-review additions: unverified TLS is still encrypted, still refuses downgrade, still never sends the password in plaintext.
+        rec("unverified-good-tls_fullauth", await outcome("tls_good_fullauth", roots: nil, security: .unverifiedTLS)); rec("unverified-fullauth.log", events("tls_good_fullauth"))
+        rec("unverified-switch_clear", await outcome("switch_mysql_clear_password", roots: nil, security: .unverifiedTLS))
+        rec("plaintext-nossl-server", await outcome("nossl", host: "127.0.0.1", roots: nil, security: .plaintext))
         try out.joined(separator: "\n").write(toFile: attackDir! + "/report-live.txt", atomically: true, encoding: .utf8)
     }
 
@@ -65,8 +69,8 @@ private let live = attackDir != nil
         var out: [String] = []
         for m in ["inject:-1", "inject:0", "inject:0.0005", "inject:0.002", "inject:0.005", "inject:0.02"] {
             var results: [String: Int] = [:]
-            for _ in 0..<20 {
-                let r = await outcome(m)
+            for i in 0..<20 {
+                let r = i % 2 == 0 ? await outcome(m) : await outcome(m, roots: nil, security: .unverifiedTLS)
                 let key = r.hasPrefix("OPEN-OK") ? "FORGED-ACCEPTED" : String(r.prefix(40))
                 results[key, default: 0] += 1
             }

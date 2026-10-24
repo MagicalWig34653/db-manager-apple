@@ -171,3 +171,39 @@ erzwungen). Fix: Abfrage in den abbrechbaren Bereich ziehen bzw. am Gate per Fri
 
 **N2 (Info)** Der Fakeserver-Harness musste angepasst werden (Antwort auf `CONNECTION_ID`,
 neuer Modus `idstall`); Änderungen liegen im Review-Branch.
+
+## Zweiter Nachreview (24.10.2026) zu `227b44d` (explizite Transportmodi, N1-Fix)
+
+Geprüft: `git diff 575c1d9..227b44d`, in diesen Branch gemerged; ADR-0007 auf `740d762`
+(Abschnitt 3a). Läufe nacheinander nach `uptime`. Urteil: **freigabefähig** (weiterhin als nicht
+UI-eingebundener Core-Baustein); keine kritischen oder hohen Befunde, zwei niedrige Doku-Punkte.
+
+Läufe: `swift test` mit `DBM_A4R_DIR` (Fakeserver): 38 + 5 bestanden; `scripts/test-mysql.py`:
+38 + 5 bestanden, danach 0 Container; `check-dependencies.py` 13 Pins; `check-docs.py` 157 / 388
+Dateien, 0 Fehler (Apple / ADR-Branch); `xcodebuild` macOS und iOS Simulator BUILD SUCCEEDED.
+
+| Punkt | Ergebnis | Beleg |
+| --- | --- | --- |
+| (a) Server ohne `CLIENT_SSL` in `.verifiedTLS` und `.unverifiedTLS` | geschlossen | Fakeserver `nossl`: je **0 Clientbytes**, `mysqlTLSRequired`; nur `.plaintext` sendet (96 Byte, erwartungsgemäß, Scramble). Der Guard `if let context = config.tls` prüft `CLIENT_SSL` vor dem ersten Authentifizierungsbyte unverändert. Inject-Läufe (6 Zeitpunkte, je 20, abwechselnd verifiziert/unverified): nie akzeptiert. |
+| (b) `.plaintext` sendet nie Klartextpasswort | geschlossen | `plain_fullauth` (0x04): `mysqlUnsupportedAuth`, 0 Byte danach; `plain_switch_clear`: abgelehnt, 0 Byte; AuthSwitch auf `sha256_password`, `client_ed25519`, `mysql_old_password`, `mysql_clear_password` abgelehnt (Antwortfunktion liefert nur für zwei Scramble-Plugins). Live: frisches caching_sha2-Konto ohne TLS abgelehnt, über TLS ok. |
+| (c) Kein stilles Abschwächen | geschlossen | Initializer-Default `.verifiedTLS` (Test); `MySQLSettings` ohne Codable/Decoding; `configuration` verzweigt nur über den gesetzten Modus; der Kill-Kanal übernimmt `security` des Hauptkanals; alter Loopback-Name im Code nicht mehr vorhanden (nur als "überholt" im Handoff). CA-Datei mit `.unverifiedTLS`/`.plaintext` wird abgelehnt (Test). |
+| (d) `.unverifiedTLS` | korrekt | Server sah TLS 1.3 (`TLS_AES_256_GCM_SHA384`) und erhielt die Anmeldung erst danach, bei abgelaufenem Zertifikat, fremder CA und falschem Hostnamen; kein SNI/Hostname übergeben (`serverName == nil`, Test). Mindestens TLS 1.2 bleibt (Test). Bei Full-Auth erreicht das Klartextpasswort die unverifizierte Gegenstelle (Fakeserver bestätigt) -- wie dokumentiert. `mysql_clear_password`-Switch auch hier abgelehnt. |
+| (e) `max_execution_time`/`max_statement_time` +1 s | korrekt | Wert = Clientfrist + 1000 ms, MariaDB in Sekunden (Dezimal), MySQL in ms; weiter `try?` best effort. MySQL-Limit gilt nur für SELECT (Schreib-/DDL-Anweisungen unberührt, Katalog ist ein SELECT); MariaDB-Limit gilt für alle Anweisungen, nun 1 s später als zuvor -- keine neue Nebenwirkung. Clientfrist plus `KILL` greift zuerst. |
+| N1 | geschlossen | `idstall` bei 3 s Frist: `canceled` nach 3,07 s (vorher 10,5 s). |
+| (f) Doku | ehrlich, zwei Lücken | ADR 3a und Handoff nennen Folgen für beide Modi offen, auch Full-Auth-Klartext im unverifizierten TLS, nicht implementierten RSA-Austausch und nicht getestete Zwischensystem-Szenarien. |
+
+Neue Befunde:
+
+**N3 (Niedrig, Doku)** ADR-0007 3a nennt Offline-Ratenangriffe auf den Scramble nur bei Modus (2);
+sie gelten in Modus (3) ebenso, und dort kann ein aktiver Angreifer per AuthSwitch zusätzlich ein
+schwächeres unterstütztes Plugin (SHA-1-Scramble, `mysql_native_password`) erzwingen, weil der
+Wechsel ohne TLS jetzt erlaubt ist. Kein Klartextleck, aber stärkeres Material für Offline-Angriffe.
+Fix: im ADR ergänzen oder in `.plaintext` den Wechsel auf das Greeting-Plugin beschränken.
+
+**N4 (Niedrig, Doku)** ADR-0007 Abschnitt 6 nennt noch das Kriterium "UI-Darstellung der
+Entwicklungsoption" und Abschnitt 3 Regeln 1/3 stehen unverändert neben 3a; 3a nennt sie
+ersetzt, die Kriterienliste ist aber nicht angepasst (jetzt: UI-Darstellung der Warnstufen).
+
+Hinweis: Der Reviewer-Harness wurde erweitert (Unverified-Fälle, Cipher-Log); die
+Fakeserver-Ergebnisse im Handoff des Autors ("nossl je 0 Clientbytes", idstall 3,1 s) sind damit
+unabhängig bestätigt.
