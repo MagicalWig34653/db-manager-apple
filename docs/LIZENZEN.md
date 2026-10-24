@@ -84,7 +84,7 @@ Produkte des bereits gepinnten und inventarisierten `swift-nio` (`NIOPosix`, `NI
 `DBManagerCore` ein; `Package.resolved` und
 [inventory.json](../Sources/DBManagerCore/Resources/ThirdParty/inventory.json) bleiben
 unverändert (`scripts/check-dependencies.py` bestätigt das). Anmelde-Hashes (SHA-1/SHA-256)
-kommen aus Apples CryptoKit (Systemframework, Apple-Bedingungen), nicht aus einer
+kommen aus Apples CryptoKit, die RSA-OAEP-Verschlüsselung (caching_sha2 ohne TLS) aus dem Security.framework (beides Systemframeworks, Apple-Bedingungen), nicht aus einer
 Drittbibliothek. MySQLNIO, MariaDB Connector/C und libmysqlclient werden nicht eingebunden;
 Begründung in [ADR-0007](https://github.com/MagicalWig34653/db-manager/blob/main/docs/decisions/ADR-0007-native-mysql-adapter.md)
 (Root-Repository, Status Vorschlag) und [A4](handoffs/A4-mysql.md). Die Testfixtures
