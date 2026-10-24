@@ -179,6 +179,32 @@ def handle_conn(sock, mode):
                     got += d
             except Exception: pass
             log(mode, {"bytes_after_fullauth_request": len(got), "hexprefix": got[:40].hex()}); return
+        if mode.startswith("plain_rsa"):
+            from cryptography.hazmat.primitives.asymmetric import padding
+            bits = 1024 if mode == "plain_rsa_small" else 2048
+            rk = rsa.generate_private_key(public_exponent=65537, key_size=bits)
+            pem_pub = rk.public_key().public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo)
+            if mode == "plain_rsa_garbage": pem_pub = b"-----BEGIN PUBLIC KEY-----\nAAAA\n-----END PUBLIC KEY-----\n"
+            sock.sendall(pkt(0, greeting(ssl_on=False)))
+            raw = b""
+            def rd():
+                nonlocal raw
+                h = recvn(sock, 4); n = h[0] | h[1] << 8 | h[2] << 16; b = recvn(sock, n) if n else b""
+                raw += h + b; return h[3], b
+            rd(); sock.sendall(pkt(2, b"\x01\x04"))
+            seq, req = rd(); ev = {"keyrequest": req.hex(), "seq": seq}
+            sock.sendall(pkt(seq + 1, b"\x01" + pem_pub))
+            try:
+                seq2, ct = rd(); ev["ciphertext_len"] = len(ct)
+                if mode == "plain_rsa":
+                    pt = rk.decrypt(ct, padding.OAEP(mgf=padding.MGF1(hashes.SHA1()), algorithm=hashes.SHA1(), label=None))
+                    nonce = bytes(range(1, 21))
+                    ev["decrypted_ok"] = bytes(b ^ nonce[i % 20] for i, b in enumerate(pt)) == b"s3cret-PW\0"
+                    sock.sendall(pkt(seq2 + 1, OK()))
+            except Exception as e: ev["after_key"] = type(e).__name__
+            ev["clear_password_on_wire"] = b"s3cret-PW" in raw
+            ev["raw_len"] = len(raw)
+            log(mode, ev); return
         if mode == "plain_switch_clear":
             sock.sendall(pkt(0, greeting(ssl_on=False, plugin=b"mysql_native_password")))
             recvpkt(sock); sock.sendall(pkt(2, b"\xfemysql_clear_password\0abc\0"))
@@ -253,7 +279,7 @@ def handle_switch(sock, mode):
     except Exception as e:
         log(mode, {"server_error": type(e).__name__ + str(e)[:60]})
 
-modes = (["nossl", "plain_fullauth", "plain_switch_clear", "tls_good_fullauth", "expired", "otherca", "wronghost", "ipcert", "good"]
+modes = (["nossl", "plain_fullauth", "plain_rsa", "plain_rsa_small", "plain_rsa_garbage", "plain_switch_clear", "tls_good_fullauth", "expired", "otherca", "wronghost", "ipcert", "good"]
          + ["switch_" + p for p in ("mysql_clear_password", "mysql_native_password", "sha256_password", "client_ed25519", "mysql_old_password")]
          + ["inject:-1", "inject:0", "inject:0.0005", "inject:0.002", "inject:0.005", "inject:0.02"]
          + ["mal_" + m for m in ("hdr_huge", "badseq", "stall", "rows_endless", "bigcell", "bigcell2", "colcount", "zerocols", "drip",

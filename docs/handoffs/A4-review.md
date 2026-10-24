@@ -207,3 +207,41 @@ ersetzt, die Kriterienliste ist aber nicht angepasst (jetzt: UI-Darstellung der 
 Hinweis: Der Reviewer-Harness wurde erweitert (Unverified-Fälle, Cipher-Log); die
 Fakeserver-Ergebnisse im Handoff des Autors ("nossl je 0 Clientbytes", idstall 3,1 s) sind damit
 unabhängig bestätigt.
+
+## Dritter Nachreview (24.10.2026) zu `293a949` (RSA-Austausch, Full-Auth in allen Modi)
+
+Geprüft: `git diff 227b44d..293a949`, `feat/mysql-adapter` in diesen Branch gemerged; Root-ADR auf
+`956298e` (Status Akzeptiert). Läufe nacheinander nach `uptime`. Urteil: **freigabefähig** (weiter als
+nicht UI-eingebundener Core-Baustein); keine kritischen oder hohen Befunde, zwei niedrige/Info-Punkte.
+
+Läufe: `swift test` mit `DBM_A4R_DIR` (Fakeserver, erneut nach der Änderung): 41 + 5 bestanden;
+`scripts/test-mysql.py`: 41 + 5 bestanden, danach 0 Container (Live gegen MySQL 8.4: frische Konten über
+`.plaintext`/RSA, `.unverifiedTLS`, `.verifiedTLS`, falsches Passwort abgelehnt); `check-dependencies.py`
+13 Pins; `check-docs.py` 158 / 388 Dateien, 0 Fehler (Apple / ADR-Branch); `xcodebuild` macOS und iOS
+Simulator BUILD SUCCEEDED. Hostartefakt wie zuvor: Codesign-"detritus" im ersten `swift test`-Anlauf,
+`xattr -cr .build/out` behebt es.
+
+| Punkt | Ergebnis | Beleg |
+| --- | --- | --- |
+| (a) RSA-Pfad | korrekt | Unabhängige Gegenstelle (Python `cryptography`, Fakeserver `plain_rsa`): Schlüsselanfrage war exakt `0x02`; Ciphertext 256 Byte; mit **OAEP-SHA1/MGF1-SHA1** entschlüsselt und mit der 20-Byte-Nonce XOR zurück ergibt `Passwort\0` (`decrypted_ok: true`). Gesamter Clientverkehr (361 Byte) enthält das Klartextpasswort **nicht**. Nonce stammt aus Greeting bzw. AuthSwitch (nach Plugin-Wechsel aktualisiert). Schlüsselprüfung: Schlüssel 1024 Bit -> `mysqlUnsupportedAuth`, danach **kein weiteres Clientbyte** (Mitschnitt 101 Byte = Hello, Auth, 0x02); Müllschlüssel -> `mysqlProtocolError`, ebenfalls nichts mehr gesendet. DER-Leser: nur definite Längen bis 2 Byte, Längenprüfung gegen Restpuffer, Gesamtgröße <= 4096; Passwortkapazität OAEP geprüft. Fuzz `reviewFuzzRSAKeyParserAndDER` (40 000 Mutationen von SPKI/PKCS#1 plus Rohbytes und gelegentlich `encryptPassword`): kein Trap, kein Hänger. |
+| (b) Kein Auth ohne TLS in TLS-Modi, kein Fallback | bestätigt | Fakeserver ohne `CLIENT_SSL` (`nossl`, `plain_fullauth`, `plain_rsa`): `.verifiedTLS` und `.unverifiedTLS` je `mysqlTLSRequired`, 0 Clientbytes (Server-Log `client_bytes: 0`); nur `.plaintext` sendet. Code: der RSA-Zweig hängt an `tlsActive == false`, und das ist in TLS-Modi nicht erreichbar (`tlsActive` wird nach Handshake gesetzt oder die Verbindung bricht ab). Inject-Läufe (6 Zeitpunkte, je 20, abwechselnd verifiziert/unverifiziert): nie akzeptiert. In TLS-Modi geht das Klartextpasswort nur in die TLS-Sitzung (Fakeserver sah es erst nach `tls: established`, TLS 1.3). |
+| Auth-Switch-Downgrades | bestätigt | `mysql_clear_password`, `sha256_password`, `client_ed25519`, `mysql_old_password` weiter abgelehnt, auch im Modus `.plaintext` (0 Byte). |
+| Deadline | unverändert gut | `idstall` 3,06 s bei 3 s Frist. |
+| (c) Schlüsseltausch durch aktiven Angreifer in `.plaintext` | ehrlich benannt | ADR 3a, Risiken und Handoff sagen: Schlüssel kommt über denselben Kanal, ein aktiver Angreifer erhält das Passwort; Nonce ist öffentlich, der Angreifer muss nur Schlüssel tauschen und entschlüsseln. Durch den Fakeserver als Gegenstelle de facto bestätigt (er entschlüsselte das Passwort). Dort ebenfalls: Offline-Ratenangriffe auf den Scramble und erzwungener Wechsel auf `mysql_native_password`. N3 geschlossen. |
+| (d) Doku/ADR | konsistent bis auf N5 | Regeln 1/3/4, 3a, Risiken, Abschnitt 6 und Handoff passen zusammen, Altaussagen sind als überholt markiert (N4 geschlossen). |
+| (e) Abhängigkeit/Lizenz | in Ordnung | `Security.framework` ist Systembestandteil, `Package.swift` unverändert (`NIOEmbedded` nur Test, schon zuvor), Pins unverändert, `check-dependencies.py` grün. |
+
+Neue Befunde:
+
+**N5 (Niedrig, Doku)** ADR-0007 Abschnitt 6 nennt den unabhängigen Review nur "für den Stand `4faa2e6`".
+Tatsächlich sind `026d7d7`, `4faa2e6`, `227b44d` und jetzt `293a949` geprüft (siehe diese Datei); die
+Angabe unterschätzt den Prüfumfang und sollte auf `293a949` angehoben werden. Die ADR-Aussage, Versionsmatrix
+bleibe Folgearbeit, stimmt weiterhin (nur MariaDB 11.4.4 und MySQL 8.4 geprüft; RSA-Pfad nur gegen MySQL 8.4
+und den Fakeserver).
+
+**N6 (Info)** `docs/LIZENZEN.md` erwähnt CryptoKit, aber nicht `Security.framework`/`SecKey` für den neuen
+Pfad; der Handoff hält einen Eintrag für unnötig. Für Konsistenz mit der CryptoKit-Zeile ein Satz ratsam,
+rechtlich kein Hindernis.
+
+Hinweis: Die Sicherheitsentscheidung des Nutzers (keine Sperre, ungeschönte Folgen) ist umgesetzt wie
+beschrieben; es gibt keinen Pfad, der Modus stillschweigend abschwächt.
