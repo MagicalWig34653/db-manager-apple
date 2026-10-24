@@ -1,6 +1,7 @@
 # TestFlight lokal vorbereiten
 
-App: de.linolaske.dbmanager · Team J2DU2P47XW · Version 0.1.0 · Build 3 (Build 1 bereits hochgeladen; Build 2 wurde von Apple vor der Verarbeitung abgelehnt und nie verarbeitet).
+App: de.linolaske.dbmanager · Team J2DU2P47XW · Version 0.1.0 · Build 4 (Build 1 hochgeladen; Build 2 von Apple abgelehnt und nie verarbeitet; Build 3 laut Eigentümer hochgeladen, Verarbeitung separat zu prüfen).
+Build 4 ist das erste Archiv mit iPhone und iPad (`UIDeviceFamily` 1 und 2, Deployment 26.0); [Details](../docs/handoffs/A-TF4.md).
 Ein gemeinsamer App-Store-Eintrag kann iOS/iPadOS und macOS umfassen; separat
 archivieren und später nach ausdrücklicher Freigabe getrennt hochladen.
 Bundle-ID muss als explizite ID im Developeraccount registriert sein. Ein

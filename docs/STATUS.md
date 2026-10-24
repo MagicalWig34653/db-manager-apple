@@ -115,3 +115,11 @@ Code“ abgelehnt und nie verarbeitet; der Schlüssel `YES` aus A-TF2 ist damit 
 Grundlage: Nutzererklärung in App Store Connect, Apple verlangt keine Dokumente;
 Frankreich ausgeschlossen. Details und tatsächlich ausgeführte Prüfungen:
 [A-TF3](handoffs/A-TF3-compliance.md). Upload und Verarbeitung von Build 3: offen.
+
+## A-TF4 – Build 4 mit iPhone und iPad
+
+Branch `release/build4`: `CURRENT_PROJECT_VERSION = 4` (Debug und Release), Version 0.1.0,
+sonst keine Funktionsänderung. Enthält A5 (iPhone+iPad, natives Mac, Deployment 26.0).
+Compliance unverändert (`ITSAppUsesNonExemptEncryption = NO`, siehe A-TF3). Lokal signiert
+archiviert und exportiert; Upload und Verarbeitung: offen. Prüfstand und Grenzen:
+[A-TF4](handoffs/A-TF4.md).
