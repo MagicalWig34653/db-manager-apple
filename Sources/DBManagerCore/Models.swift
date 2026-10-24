@@ -50,6 +50,8 @@ public enum DatabaseError: Error, LocalizedError, Sendable, Equatable {
     case notOpen, cannotOpen, invalidLimits, emptySQL, multipleStatements, writesDisabled
     case canceled, busy, resultTooLarge, invalidText, queryFailed(Int32)
     case invalidConnection, connectionFailed, postgresFailed, operationInProgress, cancellationUnconfirmed
+    case invalidMySQLConnection, mysqlConnectionFailed, mysqlTLSRequired, mysqlUnsupportedAuth, mysqlProtocolError
+    case mysqlFailed(Int32)
     public var errorDescription: String? {
         switch self {
         case .notOpen: "Zuerst eine Datenquelle öffnen oder verbinden."
@@ -66,6 +68,12 @@ public enum DatabaseError: Error, LocalizedError, Sendable, Equatable {
         case .invalidConnection: "Die PostgreSQL-Verbindungswerte oder CA-Datei sind ungültig."
         case .connectionFailed: "PostgreSQL-Verbindung fehlgeschlagen. Ziel, TLS-Zertifikat und Anmeldung prüfen."
         case .postgresFailed: "PostgreSQL-Anweisung fehlgeschlagen. Syntax, Berechtigungen und Lesemodus prüfen."
+        case .invalidMySQLConnection: "Die MySQL-/MariaDB-Verbindungswerte, CA-Datei oder Sicherheitsoption sind ungültig."
+        case .mysqlConnectionFailed: "MySQL-/MariaDB-Verbindung fehlgeschlagen. Ziel, TLS-Zertifikat und Anmeldung prüfen."
+        case .mysqlTLSRequired: "Der Server bietet kein TLS an. Es wurden keine Anmeldedaten gesendet. TLS auf dem Server aktivieren."
+        case .mysqlUnsupportedAuth: "Das Anmeldeverfahren des Servers wird nicht unterstützt oder erfordert TLS."
+        case .mysqlProtocolError: "Unerwartete Antwort des MySQL-/MariaDB-Servers. Verbindung wurde geschlossen."
+        case .mysqlFailed(let code): "MySQL-/MariaDB-Anweisung fehlgeschlagen (Serverfehler \(code)). Syntax, Berechtigungen und Lesemodus prüfen."
         case .operationInProgress: "Es läuft bereits eine Datenbankoperation."
         case .queryFailed(let code): "SQL fehlgeschlagen (SQLite-Code \(code)). Syntax und Datenbank prüfen."
         }
