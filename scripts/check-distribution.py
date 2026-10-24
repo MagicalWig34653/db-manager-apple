@@ -9,7 +9,7 @@ import subprocess
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--app', type=Path, required=True)
-parser.add_argument('--expected-build', default='3', help='Expected CFBundleVersion; defaults to the current build')
+parser.add_argument('--expected-build', default='4', help='Expected CFBundleVersion; defaults to the current build')
 parser.add_argument('--signed', action='store_true')
 parser.add_argument('--distribution-profile', action='store_true')
 args = parser.parse_args()
