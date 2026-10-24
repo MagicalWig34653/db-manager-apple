@@ -28,7 +28,7 @@ im Root-Repo (Status **Vorschlag**, Branch `docs/adr-0007-native-mysql`). Kurzfa
 - TLS: standardmäßig Pflicht, TLS ≥ 1.2, `.fullVerification`, Host als Identität, optionale CA
   nur für die Verbindung. Ablauf: Greeting, fehlt `CLIENT_SSL` dann `mysqlTLSRequired` ohne
   Anmeldebytes, SSLRequest, TLS-Handshake, erst dann Anmeldung. Klartext nur mit
-  `.plaintextLoopbackDevelopmentOnly` (nur Loopback-Hosts, nicht mit CA kombinierbar).
+  `.plaintextLoopbackDevelopmentOnly` (nur Loopback-Hosts, nicht mit CA kombinierbar). **Überholt durch die Nutzerentscheidung unten.**
 - Auth: `mysql_native_password`, `caching_sha2_password` (Fast-Auth, Full-Auth nur über TLS,
   Auth-Switch). Andere Plugins werden abgelehnt.
 - SELECT/Einzelstatement: exakt DECIMAL, BIGINT UNSIGNED, Mikrosekunden, BLOB (Base64),
@@ -122,3 +122,58 @@ Skript selbst lief daher nie komplett durch.
   Aufruf wie im Review beschrieben; der Fakeserver-Lauf wurde nach den Fixes nicht wiederholt.
 - Prüfstand nach den Fixes: `scripts/test-mysql.py` bestanden (Livesuite einschließlich
   Abbruchprobe gegen beide Server), dazu die Läufe unten im Abschnitt zuvor erneut.
+
+## Nutzerentscheidung: TLS nicht erzwungen, aber ausdrücklich gewählt (24.10.2026)
+
+Der Nutzer hat entschieden, dass der native Client TLS nicht erzwingen muss. Umgesetzt als
+ausdrückliche Einstellung pro Verbindung (`MySQLSettings.transportSecurity`), nie als stiller
+Fallback. Die Loopback-Entwicklungsoption ist ersetzt.
+
+| Modus | Warnstufe (`.warning`) | Verhalten |
+| --- | --- | --- |
+| `.verifiedTLS` (Standard) | `.none` | TLS >= 1.2, Zertifikat und Hostname geprüft, optionale CA |
+| `.unverifiedTLS` | `.serverIdentityUnverified` | TLS ohne Zertifikat- und Hostnamenprüfung; Server kann von einem aktiven Angreifer imitiert werden |
+| `.plaintext` | `.noEncryption` | kein TLS, auch für Nicht-Loopback-Hosts; alles mitlesbar und veränderbar |
+
+- Fehlt `CLIENT_SSL` beim Server und ein TLS-Modus ist gewählt, bricht der Client weiter mit
+  `mysqlTLSRequired` vor dem ersten Authentifizierungsbyte ab (Test gegen echten Server und
+  Fakeserver, auch im Modus `.unverifiedTLS`). Es gibt keinen automatischen Wechsel.
+- Eine CA-Datei zusammen mit `.unverifiedTLS` oder `.plaintext` wird abgelehnt (Widerspruch),
+  nicht stillschweigend ignoriert. `MySQLTransportSecurity.allCases`, `.warning`, `.usesTLS` und
+  `.verifiesServerIdentity` erlauben der UI eine klare Auswahl und Warnanzeige.
+- Passwortschutz ohne TLS: Das Passwort verlässt den Client nur als Scramble
+  (`mysql_native_password`, `caching_sha2_password` Fast-Auth, auch per Auth-Switch zwischen diesen
+  beiden). `caching_sha2` Full-Auth (Server verlangt das Klartextpasswort) wird ohne TLS mit
+  `mysqlUnsupportedAuth` abgelehnt; der RSA-Public-Key-Austausch ist **nicht** umgesetzt (würde
+  einen unauthentifizierten Schlüssel vom Server übernehmen, also ohne Server-Identität sinnlos).
+  Praktische Folge: Konten mit `caching_sha2_password`, die der Server noch nicht im Cache hat,
+  können sich ohne TLS erst nach einer TLS-Anmeldung verbinden. Test mit frischem MySQL-8.4-Konto.
+- Folge von `.unverifiedTLS`: Bei Full-Auth wird das Klartextpasswort in einen TLS-Kanal gesendet,
+  dessen Gegenstelle nicht geprüft wurde. Ein aktiver Angreifer erhält es. Die Warnstufe
+  `.serverIdentityUnverified` muss das der UI deutlich sagen.
+- F4 angepasst: Der Auth-Switch auf ein anderes unterstütztes Scramble-Plugin ist in allen Modi
+  erlaubt (nie Klartext); nicht unterstützte Plugins bleiben abgelehnt.
+- Server-seitiges `max_execution_time`/`max_statement_time` liegt jetzt eine Sekunde über der
+  Clientfrist, damit die Clientfrist samt `KILL` deterministisch zuerst greift.
+
+### Nachreview-Befund N1
+
+`SELECT CONNECTION_ID()` läuft jetzt im abbrechbaren Bereich unter der Nutzerfrist. Die Messung
+des Reviews (ca. 10,5 s bei 3 s Frist) kam zusätzlich daher, dass `open()` den Katalog mit einer
+festen 10-s-Frist las; `open(_:timeout:)` nimmt die Frist jetzt als Parameter. Fakeserver
+`idstall`: Rückkehr mit `canceled` nach rund 3,1 s bei 3 s Frist. Der Test ist Teil des
+Review-Harness (`DBM_A4R_DIR`), kein deterministischer Unit-Test.
+
+### Prüfstand dieser Änderung
+
+`scripts/test-mysql.py` (Live: alle drei Modi positiv, TLS-Modi gegen Server ohne TLS negativ,
+plaintext gegen frisches caching_sha2-Konto negativ), Fakeserver-Harness (Downgrade, Modus
+`.unverifiedTLS` ebenfalls ohne Clientbyte abgebrochen, idstall) und weitere Läufe siehe
+Abschlussbericht. Nicht getestet: `.unverifiedTLS` gegen ein tatsächlich manipulierendes
+Zwischensystem (die Folge ist per Definition ungeschützt), RSA-Austausch (nicht implementiert).
+
+Ergebnis dieser Änderung (24.10.2026): `test-mysql.py` bestanden (38 Tests, keine A4-Container
+danach), `swift test` 38 + 5 bestanden, `check-dependencies.py`, `check-docs.py`, `xcodebuild`
+macOS und iOS Simulator erfolgreich. Fakeserver-Lauf: `nossl` mit `.verifiedTLS` und
+`.unverifiedTLS` je 0 Clientbytes, `plain_fullauth` und `plain_switch_clear` abgelehnt, idstall
+`canceled` nach 3,1 s.

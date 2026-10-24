@@ -25,7 +25,7 @@ private func outcome(_ mode: String, host: String = "localhost", roots: String? 
     let start = ContinuousClock.now
     var text: String
     do {
-        let objs = try await database.open(settings); text = "OPEN-OK \(objs.map { $0.name })"
+        let objs = try await database.open(settings, timeout: timeout); text = "OPEN-OK \(objs.map { $0.name })"
         if let sql {
             let r = try await database.execute(sql, limits: limits ?? QueryLimits(timeout: timeout))
             text = "OK rows=\(r.rows.count) truncated=\(r.truncated)"
@@ -43,6 +43,9 @@ private let live = attackDir != nil
         var out: [String] = []
         func rec(_ k: String, _ v: String) { out.append("\(k): \(v)") }
         rec("nossl", await outcome("nossl")); rec("nossl.log", events("nossl"))
+        // Explicit TLS modes never fall back to plaintext: still aborted before any client byte.
+        rec("nossl-unverified", await outcome("nossl", roots: nil, security: .unverifiedTLS)); rec("nossl-unverified.log", events("nossl"))
+        for m in ["expired", "otherca", "wronghost"] { rec(m + "-unverified", await outcome(m, roots: nil, security: .unverifiedTLS)) }
         for m in ["expired", "otherca", "wronghost"] { rec(m, await outcome(m)); rec(m + ".log", events(m)) }
         rec("good-host-localhost", await outcome("good")); rec("good.log", events("good"))
         rec("ipcert-host-127", await outcome("ipcert", host: "127.0.0.1")); rec("ipcert.log", events("ipcert"))
@@ -50,8 +53,8 @@ private let live = attackDir != nil
         rec("good-ip-host(127.0.0.1 vs DNS cert)", await outcome("good", host: "127.0.0.1"))
         rec("noca-system-store", await outcome("good", roots: nil))
         rec("tls_good_fullauth", await outcome("tls_good_fullauth")); rec("tls_good_fullauth.log", events("tls_good_fullauth"))
-        rec("plain_fullauth", await outcome("plain_fullauth", host: "127.0.0.1", roots: nil, security: .plaintextLoopbackDevelopmentOnly)); rec("plain_fullauth.log", events("plain_fullauth"))
-        rec("plain_switch_clear", await outcome("plain_switch_clear", host: "127.0.0.1", roots: nil, security: .plaintextLoopbackDevelopmentOnly)); rec("plain_switch_clear.log", events("plain_switch_clear"))
+        rec("plain_fullauth", await outcome("plain_fullauth", host: "127.0.0.1", roots: nil, security: .plaintext)); rec("plain_fullauth.log", events("plain_fullauth"))
+        rec("plain_switch_clear", await outcome("plain_switch_clear", host: "127.0.0.1", roots: nil, security: .plaintext)); rec("plain_switch_clear.log", events("plain_switch_clear"))
         for p in ["mysql_clear_password", "mysql_native_password", "sha256_password", "client_ed25519", "mysql_old_password"] {
             rec("switch_" + p, await outcome("switch_" + p)); rec("switch_" + p + ".log", events("switch_" + p))
         }
@@ -74,7 +77,7 @@ private let live = attackDir != nil
 
     @Test func malicious() async throws {
         var out: [String] = []
-        let plain = MySQLTransportSecurity.plaintextLoopbackDevelopmentOnly
+        let plain = MySQLTransportSecurity.plaintext
         for m in ["hdr_huge", "badseq", "stall", "rows_endless", "bigcell", "bigcell2", "colcount", "zerocols", "drip", "invalid_utf8", "shortrow", "errpacket", "infile", "rows_fat", "idstall"] {
             let r = await outcome("mal_" + m, host: "127.0.0.1", roots: nil, security: plain, timeout: 3,
                                   limits: QueryLimits(maxRows: 1000, timeout: 3), sql: "SELECT mal")

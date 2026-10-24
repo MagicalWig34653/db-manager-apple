@@ -5,14 +5,41 @@ import NIOPosix
 import NIOSSL
 import NIOTLS
 
-/// How the client protects the MySQL/MariaDB connection. There is deliberately no "prefer" mode.
-public enum MySQLTransportSecurity: Sendable, Equatable {
-    /// Default. TLS is mandatory and negotiated before any credential is sent;
-    /// certificate chain and host name are fully verified. A server without TLS is refused.
+/// Warning level a UI can show for a transport choice. There is no automatic switch between modes.
+public enum MySQLSecurityWarning: Int, Sendable, Comparable {
+    /// Encrypted and the server identity is verified.
+    case none = 0
+    /// Encrypted, but the server certificate and host name are NOT checked: an active attacker can
+    /// impersonate the server and read credentials and data.
+    case serverIdentityUnverified = 1
+    /// Nothing is encrypted: credentials (as scrambles) and all data are readable and modifiable on the path.
+    case noEncryption = 2
+    public static func < (lhs: Self, rhs: Self) -> Bool { lhs.rawValue < rhs.rawValue }
+}
+
+/// How the client protects one MySQL/MariaDB connection. The mode is chosen explicitly per connection;
+/// the client never falls back from one mode to a weaker one. If the server does not offer TLS while
+/// a TLS mode is selected, the connection is aborted before any authentication byte is sent.
+public enum MySQLTransportSecurity: Sendable, Equatable, CaseIterable {
+    /// Default. TLS >= 1.2 with certificate chain and host name verification.
     case verifiedTLS
-    /// Explicit local development escape hatch: no TLS at all. Only accepted for loopback hosts
-    /// (`localhost`, `127.0.0.0/8`, `::1`). Never persisted, never the default.
-    case plaintextLoopbackDevelopmentOnly
+    /// Explicitly chosen: TLS without certificate or host name verification (encryption against passive
+    /// observers only). Not combinable with a CA file.
+    case unverifiedTLS
+    /// Explicitly chosen: no TLS at all, also for non-loopback hosts. Passwords only ever leave as
+    /// scrambles (mysql_native_password, caching_sha2_password fast auth); caching_sha2 full
+    /// authentication would need the clear password and is refused. Not combinable with a CA file.
+    case plaintext
+
+    public var warning: MySQLSecurityWarning {
+        switch self {
+        case .verifiedTLS: .none
+        case .unverifiedTLS: .serverIdentityUnverified
+        case .plaintext: .noEncryption
+        }
+    }
+    public var usesTLS: Bool { self != .plaintext }
+    public var verifiesServerIdentity: Bool { self == .verifiedTLS }
 }
 
 struct MySQLConnectionConfig: Sendable, CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
@@ -25,6 +52,8 @@ struct MySQLConnectionConfig: Sendable, CustomStringConvertible, CustomDebugStri
     let username: String
     let password: [UInt8]
     let tls: NIOSSLContext?
+    let security: MySQLTransportSecurity
+    var serverName: String? { security.verifiesServerIdentity ? host : nil }
     let connectTimeout: TimeInterval
 }
 
@@ -201,12 +230,12 @@ final class MySQLConnection: @unchecked Sendable {
             let promise = channel.eventLoop.makePromise(of: Void.self)
             inbound.setTLSPromise(promise)
             do {
-                let host = config.host
+                let serverName = config.serverName
                 try await channel.eventLoop.submit { [channel, inbound] in
                     // Runs on the event loop: no read can slip in between this check and the TLS handler.
                     try inbound.requireNoQueuedData()
                     try channel.pipeline.syncOperations.addHandler(
-                        NIOSSLClientHandler(context: context, serverHostname: host), position: .first)
+                        NIOSSLClientHandler(context: context, serverHostname: serverName), position: .first)
                 }.get()
                 try await promise.futureResult.get()
             } catch let known as DatabaseError { throw known
@@ -236,10 +265,9 @@ final class MySQLConnection: @unchecked Sendable {
                 packet.moveReaderIndex(forwardBy: 1)
                 guard let name = packet.readMySQLNulTerminated(maxLength: 64) else { throw DatabaseError.mysqlProtocolError }
                 let requested = String(decoding: name, as: UTF8.self)
-                // A switch away from the plugin announced in the unauthenticated greeting is only
-                // acceptable inside verified TLS (e.g. caching_sha2_password -> mysql_native_password);
-                // the response is still a scramble, never the clear password.
-                guard requested == plugin || tlsActive else { throw DatabaseError.mysqlUnsupportedAuth }
+                // Only plugins answered with a scramble are supported (never the clear password), so a
+                // switch cannot leak the password even without TLS. In plaintext mode the user already
+                // accepted that the path is unprotected; unsupported plugins are refused below.
                 plugin = requested
                 scramble = packet.readBytes(length: packet.readableBytes) ?? []
                 if scramble.last == 0 { scramble.removeLast() }

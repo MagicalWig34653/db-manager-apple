@@ -17,6 +17,8 @@ SCHEMA = """
 SET GLOBAL log_bin_trust_function_creators = 1;
 CREATE DATABASE IF NOT EXISTS probe;
 CREATE USER 'native_app'@'%' IDENTIFIED BY 'public-a4-fixture';
+CREATE USER 'plain_probe'@'%' IDENTIFIED BY 'public-a4-fixture';
+GRANT SELECT ON probe.* TO 'plain_probe'@'%';
 GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,EXECUTE ON probe.* TO 'native_app'@'%';
 GRANT PROCESS ON *.* TO 'native_app'@'%';
 SET time_zone = '+00:00';

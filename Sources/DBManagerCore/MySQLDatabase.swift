@@ -22,15 +22,6 @@ public struct MySQLSettings: Sendable, CustomStringConvertible, CustomDebugStrin
         self.transportSecurity = transportSecurity
     }
 
-    static func isLoopback(_ host: String) -> Bool {
-        let value = host.lowercased()
-        if value == "localhost" || value == "::1" { return true }
-        let parts = value.split(separator: ".", omittingEmptySubsequences: false)
-        return parts.count == 4 && parts[0] == "127" && parts.allSatisfy { part in
-            part.count <= 3 && part.allSatisfy(\.isASCII) && (UInt8(part) != nil)
-        }
-    }
-
     func configuration(timeout: TimeInterval) throws -> MySQLConnectionConfig {
         guard !host.isEmpty, host.utf8.count <= 253, !host.contains(where: { $0.isWhitespace }),
               !host.contains("/"), !host.contains("\0"), (1...65535).contains(port), !username.isEmpty,
@@ -40,12 +31,15 @@ public struct MySQLSettings: Sendable, CustomStringConvertible, CustomDebugStrin
         }
         var context: NIOSSLContext?
         switch transportSecurity {
-        case .plaintextLoopbackDevelopmentOnly:
-            // The escape hatch never reaches a remote host and never combines with a custom CA.
-            guard Self.isLoopback(host), certificateAuthority == nil else { throw DatabaseError.invalidMySQLConnection }
+        case .plaintext, .unverifiedTLS:
+            // A CA file contradicts a mode that does not verify; refuse instead of silently ignoring it.
+            guard certificateAuthority == nil else { throw DatabaseError.invalidMySQLConnection }
         case .verifiedTLS:
+            break
+        }
+        if transportSecurity.usesTLS {
             var tls = TLSConfiguration.makeClientConfiguration()
-            tls.certificateVerification = .fullVerification
+            tls.certificateVerification = transportSecurity.verifiesServerIdentity ? .fullVerification : .none
             tls.minimumTLSVersion = .tlsv12
             if let certificateAuthority {
                 guard !certificateAuthority.isEmpty, certificateAuthority.count <= 1_048_576 else { throw DatabaseError.invalidMySQLConnection }
@@ -60,7 +54,8 @@ public struct MySQLSettings: Sendable, CustomStringConvertible, CustomDebugStrin
             catch { throw DatabaseError.invalidMySQLConnection }
         }
         return MySQLConnectionConfig(host: host, port: port, database: database, username: username,
-                                     password: Array(password.utf8), tls: context, connectTimeout: timeout)
+                                     password: Array(password.utf8), tls: context, security: transportSecurity,
+                                     connectTimeout: timeout)
     }
 }
 
@@ -128,7 +123,7 @@ private final class MySQLQueryGate: @unchecked Sendable {
     private static func kill(_ configuration: MySQLConnectionConfig, threadID: UInt32) async -> Bool {
         let config = MySQLConnectionConfig(host: configuration.host, port: configuration.port, database: configuration.database,
                                            username: configuration.username, password: configuration.password,
-                                           tls: configuration.tls, connectTimeout: 2)
+                                           tls: configuration.tls, security: configuration.security, connectTimeout: 2)
         let box = ConnectionBox()
         let deadline = Task { try await Task.sleep(for: .seconds(2)); box.close() }
         defer { deadline.cancel(); box.close() }
@@ -149,12 +144,13 @@ public actor MySQLDatabase {
     public init() {}
 
     // Each operation owns and releases a physical connection. No cross-request SQL session.
-    public func open(_ settings: MySQLSettings) async throws -> [DatabaseObject] {
+    /// `timeout` bounds connecting, authentication and the initial catalog read together.
+    public func open(_ settings: MySQLSettings, timeout: TimeInterval = 10) async throws -> [DatabaseObject] {
         guard !running else { throw DatabaseError.operationInProgress }
         self.settings = nil
         generation &+= 1
         let openingGeneration = generation
-        let objects = try await catalog(settings)
+        let objects = try await catalog(settings, timeout: timeout)
         try Task.checkCancellation()
         guard openingGeneration == generation else { throw DatabaseError.canceled }
         self.settings = settings
@@ -171,13 +167,13 @@ public actor MySQLDatabase {
         return try await catalog(settings)
     }
     /// Schema is the MySQL database name; system schemas are hidden from navigation only.
-    private func catalog(_ settings: MySQLSettings) async throws -> [DatabaseObject] {
+    private func catalog(_ settings: MySQLSettings, timeout: TimeInterval = 10) async throws -> [DatabaseObject] {
         let result = try await perform(settings, sql: """
             SELECT TABLE_SCHEMA AS s, TABLE_NAME AS n, IF(TABLE_TYPE LIKE '%VIEW%', 'view', 'table') AS k
             FROM information_schema.TABLES
             WHERE TABLE_SCHEMA NOT IN ('information_schema','mysql','performance_schema','sys')
             ORDER BY TABLE_SCHEMA, TABLE_NAME
-            """, allowWrites: false, limits: QueryLimits(maxRows: 10_000))
+            """, allowWrites: false, limits: QueryLimits(maxRows: 10_000, timeout: timeout))
         guard !result.truncated else { throw DatabaseError.resultTooLarge }
         return try result.rows.map { row in
             guard row.count == 3, let schema = row[0].value, let name = row[1].value, let kind = row[2].value else { throw DatabaseError.mysqlProtocolError }
@@ -244,8 +240,9 @@ public actor MySQLDatabase {
             try Task.checkCancellation()
             let current = try await MySQLConnection.connect(configuration) { gate.install($0) }
             connection = current
-            gate.installThread(try await current.authenticatedConnectionID())
             let result = try await withTaskCancellationHandler {
+                // Inside the cancellable region: the user deadline also bounds this round trip (review N1).
+                gate.installThread(try await current.authenticatedConnectionID())
                 try Task.checkCancellation()
                 let small = QueryLimits(maxRows: 1, maxCellBytes: 1024, maxResultBytes: 4096, timeout: limits.timeout)
                 func statement(_ text: String) async throws {
@@ -254,7 +251,8 @@ public actor MySQLDatabase {
                 }
                 try await statement("SET SESSION time_zone = '+00:00'")
                 // Server-side deadline is a best effort; the client deadline plus KILL QUERY is authoritative.
-                let milliseconds = max(1, Int(limits.timeout * 1000))
+                // One second slack: the client deadline plus KILL decides first; the server limit is only a backstop.
+                let milliseconds = max(1, Int(limits.timeout * 1000)) + 1000
                 try? await statement(current.isMariaDB
                     ? "SET SESSION max_statement_time = \(Double(milliseconds) / 1000)"
                     : "SET SESSION max_execution_time = \(milliseconds)")

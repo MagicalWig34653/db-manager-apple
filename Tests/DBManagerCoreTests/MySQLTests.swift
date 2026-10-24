@@ -2,6 +2,7 @@
 import Foundation
 import NIOCore
 import NIOEmbedded
+import NIOSSL
 import Testing
 @testable import DBManagerCore
 
@@ -24,20 +25,29 @@ private func hex(_ bytes: [UInt8]) -> String { bytes.map { String(format: "%02x"
     }
 }
 
-@Test func mysqlPlaintextIsOnlyAcceptedForLoopbackDevelopment() throws {
-    for host in ["localhost", "127.0.0.1", "127.8.9.10", "::1"] {
-        let config = try MySQLSettings(host: host, username: "x", password: "", transportSecurity: .plaintextLoopbackDevelopmentOnly).configuration(timeout: 1)
-        #expect(config.tls == nil)
-    }
-    for host in ["db.example.test", "10.0.0.5", "127.0.0.1.evil.test", "127.0.0", "localhost.evil.test", "192.168.1.1", "127.0.0.256"] {
+@Test func mysqlTransportModesAreExplicitAndExposeTheirWarningLevel() throws {
+    #expect(MySQLTransportSecurity.allCases.count == 3)
+    #expect(MySQLTransportSecurity.verifiedTLS.warning == .none && MySQLTransportSecurity.verifiedTLS.verifiesServerIdentity)
+    #expect(MySQLTransportSecurity.unverifiedTLS.warning == .serverIdentityUnverified && MySQLTransportSecurity.unverifiedTLS.usesTLS)
+    #expect(!MySQLTransportSecurity.unverifiedTLS.verifiesServerIdentity)
+    #expect(MySQLTransportSecurity.plaintext.warning == .noEncryption && !MySQLTransportSecurity.plaintext.usesTLS)
+    #expect(MySQLSecurityWarning.none < .serverIdentityUnverified && MySQLSecurityWarning.serverIdentityUnverified < .noEncryption)
+    // Positive: every mode is accepted for ordinary (non-loopback) hosts when chosen explicitly.
+    let verified = try MySQLSettings(host: "db.example.test", username: "x", password: "").configuration(timeout: 1)
+    #expect(verified.tls?.configuration.certificateVerification == .fullVerification && verified.serverName == "db.example.test")
+    let unverified = try MySQLSettings(host: "db.example.test", username: "x", password: "", transportSecurity: .unverifiedTLS).configuration(timeout: 1)
+    #expect(unverified.tls?.configuration.certificateVerification == CertificateVerification.none && unverified.serverName == nil)
+    #expect(unverified.tls?.configuration.minimumTLSVersion == .tlsv12)
+    let plain = try MySQLSettings(host: "10.0.0.5", username: "x", password: "", transportSecurity: .plaintext).configuration(timeout: 1)
+    #expect(plain.tls == nil && plain.security == .plaintext)
+    // Negative: modes that do not verify refuse a CA file instead of silently ignoring it.
+    for mode in [MySQLTransportSecurity.unverifiedTLS, .plaintext] {
         #expect(throws: DatabaseError.invalidMySQLConnection) {
-            try MySQLSettings(host: host, username: "x", password: "", transportSecurity: .plaintextLoopbackDevelopmentOnly).configuration(timeout: 1)
+            try MySQLSettings(host: "localhost", username: "x", password: "", certificateAuthority: Data("x".utf8), transportSecurity: mode).configuration(timeout: 1)
         }
     }
-    // Plaintext never combines with a custom CA (which would suggest the user expects TLS).
-    #expect(throws: DatabaseError.invalidMySQLConnection) {
-        try MySQLSettings(host: "localhost", username: "x", password: "", certificateAuthority: Data("x".utf8), transportSecurity: .plaintextLoopbackDevelopmentOnly).configuration(timeout: 1)
-    }
+    // The default of the initializer is the verified mode.
+    #expect(MySQLSettings(host: "h", username: "u", password: "p").transportSecurity == .verifiedTLS)
 }
 
 @Test func mysqlAuthScramblesMatchReferenceVectors() {
@@ -250,18 +260,44 @@ private func mysqlLiveSettings(_ port: String = "DBM_A4_MARIA_TLS_PORT", host: S
         await database.close()
     }
 
-    @Test(.enabled(if: liveEnabled)) func liveExplicitLoopbackPlaintextWorksOnlyWhenRequested() async throws {
-        let plain = try #require(try mysqlLiveSettings("DBM_A4_MARIA_PLAIN_PORT", roots: nil, security: .plaintextLoopbackDevelopmentOnly))
-        let database = MySQLDatabase()
-        _ = try await database.open(plain)
-        let cipher = try await database.execute("SHOW SESSION STATUS LIKE 'Ssl_cipher'")
-        #expect(cipher.rows[0][1].value == "")
-        await database.close()
-        let verified = MySQLDatabase()
-        _ = try await verified.open(try #require(try mysqlLiveSettings()))
-        let secure = try await verified.execute("SHOW SESSION STATUS LIKE 'Ssl_cipher'")
-        #expect(secure.rows[0][1].value?.isEmpty == false)
-        await verified.close()
+    @Test(.enabled(if: liveEnabled)) func liveExplicitTransportModes() async throws {
+        func cipher(_ settings: MySQLSettings) async throws -> String {
+            let database = MySQLDatabase()
+            _ = try await database.open(settings)
+            let value = try await database.execute("SHOW SESSION STATUS LIKE 'Ssl_cipher'").rows[0][1].value ?? "?"
+            await database.close()
+            return value
+        }
+        // (1) verified TLS: encrypted.
+        #expect(try await cipher(try #require(try mysqlLiveSettings())).isEmpty == false)
+        // (2) unverified TLS: encrypted, and works where verification fails (no CA, IP target, MySQL server).
+        for (port, host) in [("DBM_A4_MARIA_TLS_PORT", "localhost"), ("DBM_A4_MARIA_TLS_PORT", "127.0.0.1"), ("DBM_A4_MYSQL_TLS_PORT", "localhost")] {
+            let settings = try #require(try mysqlLiveSettings(port, host: host, roots: nil, security: .unverifiedTLS))
+            #expect(try await cipher(settings).isEmpty == false)
+        }
+        // The wrong-host fixture has no accounts: the unverified mode gets past the certificate and fails at login.
+        let wrongHostUnverified = try #require(try mysqlLiveSettings("DBM_A4_MARIA_WRONGHOST_PORT", roots: nil, security: .unverifiedTLS))
+        await #expect(throws: DatabaseError.mysqlConnectionFailed) { try await MySQLDatabase().open(wrongHostUnverified) }
+        // (3) plaintext: works on a server without TLS (any host by design), session is unencrypted.
+        let plain = try #require(try mysqlLiveSettings("DBM_A4_MARIA_PLAIN_PORT", roots: nil, security: .plaintext))
+        #expect(try await cipher(plain).isEmpty)
+        // Scramble-only: a caching_sha2 account that never authenticated needs full authentication, which would
+        // reveal the clear password and is refused without TLS.
+        let fresh = MySQLSettings(host: "localhost", port: try #require(ProcessInfo.processInfo.environment["DBM_A4_MYSQL_TLS_PORT"].flatMap(Int.init)),
+                                  database: "probe", username: "plain_probe", password: "public-a4-fixture", transportSecurity: .plaintext)
+        await #expect(throws: DatabaseError.mysqlUnsupportedAuth) { try await MySQLDatabase().open(fresh) }
+        // The very same account works through verified TLS (full authentication inside TLS).
+        let viaTLS = try #require(try mysqlLiveSettings("DBM_A4_MYSQL_TLS_PORT"))
+        _ = try await MySQLDatabase().open(MySQLSettings(host: viaTLS.host, port: viaTLS.port, database: "probe", username: "plain_probe",
+                                                         password: "public-a4-fixture", certificateAuthority: viaTLS.certificateAuthority))
+    }
+
+    @Test(.enabled(if: liveEnabled)) func liveServerWithoutTLSIsRefusedInBothTLSModes() async throws {
+        // Neither TLS mode may fall back to plaintext when the server offers no TLS.
+        for security in [MySQLTransportSecurity.verifiedTLS, .unverifiedTLS] {
+            let plain = try #require(try mysqlLiveSettings("DBM_A4_MARIA_PLAIN_PORT", roots: security == .verifiedTLS ? "DBM_A4_CA_FILE" : nil, security: security))
+            await #expect(throws: DatabaseError.mysqlTLSRequired) { try await MySQLDatabase().open(plain) }
+        }
     }
 
     @Test(.enabled(if: liveEnabled), arguments: ["DBM_A4_MARIA_TLS_PORT", "DBM_A4_MYSQL_TLS_PORT"])
