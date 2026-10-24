@@ -58,6 +58,15 @@ private let live = attackDir != nil
         for p in ["mysql_clear_password", "mysql_native_password", "sha256_password", "client_ed25519", "mysql_old_password"] {
             rec("switch_" + p, await outcome("switch_" + p)); rec("switch_" + p + ".log", events("switch_" + p))
         }
+        // Second-review additions: unverified TLS is still encrypted, still refuses downgrade, still never sends the password in plaintext.
+        rec("unverified-good-tls_fullauth", await outcome("tls_good_fullauth", roots: nil, security: .unverifiedTLS)); rec("unverified-fullauth.log", events("tls_good_fullauth"))
+        for m in ["plain_rsa", "plain_rsa_small", "plain_rsa_garbage"] {
+            rec(m, await outcome(m, host: "127.0.0.1", roots: nil, security: .plaintext)); rec(m + ".log", events(m))
+        }
+        // TLS modes must never take the RSA / plaintext path: no TLS offered -> refused before auth.
+        for m in ["plain_rsa", "plain_fullauth"] { rec(m + "-verifiedTLS", await outcome(m, host: "127.0.0.1", roots: nil)); rec(m + "-unverifiedTLS", await outcome(m, host: "127.0.0.1", roots: nil, security: .unverifiedTLS)) }
+        rec("unverified-switch_clear", await outcome("switch_mysql_clear_password", roots: nil, security: .unverifiedTLS))
+        rec("plaintext-nossl-server", await outcome("nossl", host: "127.0.0.1", roots: nil, security: .plaintext))
         try out.joined(separator: "\n").write(toFile: attackDir! + "/report-live.txt", atomically: true, encoding: .utf8)
     }
 
@@ -65,8 +74,8 @@ private let live = attackDir != nil
         var out: [String] = []
         for m in ["inject:-1", "inject:0", "inject:0.0005", "inject:0.002", "inject:0.005", "inject:0.02"] {
             var results: [String: Int] = [:]
-            for _ in 0..<20 {
-                let r = await outcome(m)
+            for i in 0..<20 {
+                let r = i % 2 == 0 ? await outcome(m) : await outcome(m, roots: nil, security: .unverifiedTLS)
                 let key = r.hasPrefix("OPEN-OK") ? "FORGED-ACCEPTED" : String(r.prefix(40))
                 results[key, default: 0] += 1
             }
@@ -159,4 +168,35 @@ private struct LCG { var s: UInt64; mutating func next() -> UInt64 { s = s &* 63
     for i in 0..<3 { w4.writeBytes([0xFF, 0xFF, 0xFF, UInt8(i)]); w4.writeRepeatingByte(0, count: 0xFF_FFFF) }
     a4.append(w4)
     #expect(throws: DatabaseError.resultTooLarge) { try a4.nextPayload(maxPayload: 20_000_000) }
+}
+
+@Test func reviewFuzzRSAKeyParserAndDER() throws {
+    var rng = LCG(s: 0xB4)
+    // Seed: valid 2048-bit-shaped SPKI PEM built from random-but-well-formed DER, then mutated.
+    func der(_ tag: UInt8, _ body: [UInt8]) -> [UInt8] {
+        body.count < 128 ? [tag, UInt8(body.count)] + body : body.count < 256 ? [tag, 0x81, UInt8(body.count)] + body : [tag, 0x82, UInt8(body.count >> 8), UInt8(body.count & 255)] + body
+    }
+    let modulus: [UInt8] = [0] + [0xC1] + (0..<254).map { _ in UInt8(truncatingIfNeeded: rng.next()) } + [0x6B]
+    let pkcs1 = der(0x30, der(0x02, modulus) + der(0x02, [1, 0, 1]))
+    let spki = der(0x30, der(0x30, der(0x06, [0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01]) + [5, 0]) + der(0x03, [0] + pkcs1))
+    func pem(_ label: String, _ d: [UInt8]) -> [UInt8] { Array("-----BEGIN \(label)-----\n\(Data(d).base64EncodedString(options: .lineLength64Characters))\n-----END \(label)-----\n".utf8) }
+    #expect((try? MySQLRSA.parsePublicKey(pem: pem("PUBLIC KEY", spki))) != nil)
+    var accepted = 0
+    for i in 0..<40_000 {
+        var d = i % 2 == 0 ? spki : pkcs1
+        for _ in 0..<(1 + Int(rng.next() % 4)) {
+            switch rng.next() % 4 {
+            case 0 where !d.isEmpty: d[Int(rng.next()) % d.count] = UInt8(truncatingIfNeeded: rng.next())
+            case 1 where !d.isEmpty: d.removeLast(Int(rng.next()) % d.count)
+            case 2: d.insert(UInt8(truncatingIfNeeded: rng.next()), at: d.isEmpty ? 0 : Int(rng.next()) % d.count)
+            default: d += (0..<Int(rng.next() % 6)).map { _ in UInt8(truncatingIfNeeded: rng.next()) }
+            }
+        }
+        let text = pem(i % 2 == 0 ? "PUBLIC KEY" : "RSA PUBLIC KEY", d)
+        if (try? MySQLRSA.parsePublicKey(pem: text)) != nil { accepted += 1 }
+        _ = try? MySQLRSA.parsePublicKey(pem: d)               // raw bytes, no PEM
+        var r = DERReader(d); _ = try? r.sequence()
+        if i % 50 == 0 { _ = try? MySQLRSA.encryptPassword(password: [1, 2], nonce: [1], publicKeyPEM: text) }
+    }
+    #expect(accepted >= 0)
 }
