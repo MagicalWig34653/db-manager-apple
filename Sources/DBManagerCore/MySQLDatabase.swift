@@ -73,10 +73,47 @@ private final class ConnectionBox: @unchecked Sendable {
     }
 }
 
-private final class MySQLQueryGate: @unchecked Sendable {
+/// Identity of the server instance a connection reached. Connection ids are unique only per instance,
+/// so KILL QUERY is sent only after the cancel connection proved it reached the same one (review finding 4).
+struct MySQLServerIdentity: Sendable, Equatable {
+    let fields: [String]
+    /// MariaDB only (no server UUID): start time derived from uptime, compared with rounding slack.
+    let started: Int64?
+
+    static func query(isMariaDB: Bool) -> String {
+        isMariaDB
+            ? "SELECT 'mariadb', @@hostname, @@port, @@server_id, CAST(UNIX_TIMESTAMP() - VARIABLE_VALUE AS SIGNED) FROM information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME = 'UPTIME'"
+            : "SELECT 'mysql', @@server_uuid, @@hostname, @@port"
+    }
+    init(row: [Cell], isMariaDB: Bool) throws {
+        let values = row.compactMap(\.value)
+        guard values.count == row.count, values.count == (isMariaDB ? 5 : 4) else { throw DatabaseError.mysqlProtocolError }
+        if isMariaDB {
+            guard let started = Int64(values[4]) else { throw DatabaseError.mysqlProtocolError }
+            fields = Array(values.prefix(4)); self.started = started
+        } else { fields = values; started = nil }
+    }
+    static func read(_ connection: MySQLConnection) async throws -> MySQLServerIdentity {
+        let small = QueryLimits(maxRows: 2, maxCellBytes: 512, maxResultBytes: 8192, timeout: 5)
+        let result = try await connection.query(query(isMariaDB: connection.isMariaDB), limits: small)
+        guard result.rows.count == 1 else { throw DatabaseError.mysqlProtocolError }
+        return try MySQLServerIdentity(row: result.rows[0], isMariaDB: connection.isMariaDB)
+    }
+    func matches(_ other: MySQLServerIdentity) -> Bool {
+        guard fields == other.fields else { return false }
+        switch (started, other.started) {
+        case (nil, nil): return true
+        case let (a?, b?): return abs(a - b) <= 2
+        default: return false
+        }
+    }
+}
+
+final class MySQLQueryGate: @unchecked Sendable {
     private let lock = NSLock()
     private var connection: MySQLConnection?
     private var threadID: UInt32?
+    private var identity: MySQLServerIdentity?
     private var cancellationConfirmed = true
     private var stopped = false
     private var cancellation: Task<Void, Never>?
@@ -88,7 +125,9 @@ private final class MySQLQueryGate: @unchecked Sendable {
         lock.lock(); connection = value; let stop = stopped; lock.unlock()
         if stop { value.forceClose() }
     }
-    func installThread(_ id: UInt32) { lock.lock(); threadID = id; lock.unlock() }
+    func installThread(_ id: UInt32, identity value: MySQLServerIdentity) {
+        lock.lock(); threadID = id; identity = value; lock.unlock()
+    }
     func installWorker(_ task: Task<QueryResult, Error>) {
         lock.lock(); worker = task; let stop = stopped; lock.unlock()
         if stop { task.cancel() }
@@ -103,9 +142,10 @@ private final class MySQLQueryGate: @unchecked Sendable {
         if let connection, let threadID {
             cancellationConfirmed = false
             let config = configuration
+            let expected = identity
             cancellation = Task.detached { [self] in
                 // KILL QUERY over a second, equally verified TLS connection; then close the original.
-                let confirmed = await Self.kill(config, threadID: threadID)
+                let confirmed = await Self.kill(config, threadID: threadID, expected: expected)
                 setConfirmation(confirmed)
                 connection.forceClose()
             }
@@ -120,7 +160,14 @@ private final class MySQLQueryGate: @unchecked Sendable {
     func waitForCancellation() async { await cancellationTask()?.value }
     var isStopped: Bool { lock.lock(); defer { lock.unlock() }; return stopped }
 
-    private static func kill(_ configuration: MySQLConnectionConfig, threadID: UInt32) async -> Bool {
+    /// Without a proven match no KILL is sent; the cancellation then stays unconfirmed.
+    static func killStatement(threadID: UInt32, expected: MySQLServerIdentity?, actual: MySQLServerIdentity?) -> String? {
+        guard let expected, let actual, expected.matches(actual) else { return nil }
+        return "KILL QUERY \(threadID)"
+    }
+
+    private static func kill(_ configuration: MySQLConnectionConfig, threadID: UInt32, expected: MySQLServerIdentity?) async -> Bool {
+        guard expected != nil else { return false }
         let config = MySQLConnectionConfig(host: configuration.host, port: configuration.port, database: configuration.database,
                                            username: configuration.username, password: configuration.password,
                                            tls: configuration.tls, security: configuration.security, connectTimeout: 2)
@@ -129,7 +176,9 @@ private final class MySQLQueryGate: @unchecked Sendable {
         defer { deadline.cancel(); box.close() }
         do {
             let connection = try await MySQLConnection.connect(config) { box.set($0) }
-            _ = try await connection.query("KILL QUERY \(threadID)", limits: QueryLimits(maxRows: 1))
+            let actual = try await MySQLServerIdentity.read(connection)
+            guard let kill = killStatement(threadID: threadID, expected: expected, actual: actual) else { return false }
+            _ = try await connection.query(kill, limits: QueryLimits(maxRows: 1))
             return true
         } catch { return false }
     }
@@ -242,7 +291,8 @@ public actor MySQLDatabase {
             connection = current
             let result = try await withTaskCancellationHandler {
                 // Inside the cancellable region: the user deadline also bounds this round trip (review N1).
-                gate.installThread(try await current.authenticatedConnectionID())
+                gate.installThread(try await current.authenticatedConnectionID(),
+                                   identity: try await MySQLServerIdentity.read(current))
                 try Task.checkCancellation()
                 let small = QueryLimits(maxRows: 1, maxCellBytes: 1024, maxResultBytes: 4096, timeout: limits.timeout)
                 func statement(_ text: String) async throws {

@@ -247,6 +247,29 @@ private func rsaKey(bits: Int) throws -> (priv: SecKey, pkcs1: [UInt8]) {
     #expect(MySQLDatabase.transactionStart(allowWrites: false) == ["SET SESSION TRANSACTION READ ONLY", "START TRANSACTION READ ONLY"])
 }
 
+@Test func mysqlKillIsSentOnlyToTheSameServerInstance() throws {
+    let instanceA = try MySQLServerIdentity(row: [Cell(kind: .text, value: "mysql"), Cell(kind: .text, value: "uuid-a"),
+                                                  Cell(kind: .text, value: "db1"), Cell(kind: .integer, value: "3306")], isMariaDB: false)
+    let instanceB = try MySQLServerIdentity(row: [Cell(kind: .text, value: "mysql"), Cell(kind: .text, value: "uuid-b"),
+                                                  Cell(kind: .text, value: "db1"), Cell(kind: .integer, value: "3306")], isMariaDB: false)
+    #expect(MySQLQueryGate.killStatement(threadID: 42, expected: instanceA, actual: instanceA) == "KILL QUERY 42")
+    // Connection ids are unique only per instance: another backend behind the same name must not be hit.
+    #expect(MySQLQueryGate.killStatement(threadID: 42, expected: instanceA, actual: instanceB) == nil)
+    #expect(MySQLQueryGate.killStatement(threadID: 42, expected: nil, actual: instanceA) == nil)
+    #expect(MySQLQueryGate.killStatement(threadID: 42, expected: instanceA, actual: nil) == nil)
+    func maria(_ host: String, _ started: String) throws -> MySQLServerIdentity {
+        try MySQLServerIdentity(row: [Cell(kind: .text, value: "mariadb"), Cell(kind: .text, value: host), Cell(kind: .integer, value: "3306"),
+                                      Cell(kind: .integer, value: "1"), Cell(kind: .integer, value: started)], isMariaDB: true)
+    }
+    // MariaDB has no server UUID: the derived start time may differ by rounding, nothing else may.
+    #expect(MySQLQueryGate.killStatement(threadID: 7, expected: try maria("m1", "1000"), actual: try maria("m1", "1001")) == "KILL QUERY 7")
+    #expect(MySQLQueryGate.killStatement(threadID: 7, expected: try maria("m1", "1000"), actual: try maria("m1", "1500")) == nil)
+    #expect(MySQLQueryGate.killStatement(threadID: 7, expected: try maria("m1", "1000"), actual: try maria("m2", "1000")) == nil)
+    #expect(throws: DatabaseError.mysqlProtocolError) {
+        try MySQLServerIdentity(row: [Cell(kind: .null)], isMariaDB: false)
+    }
+}
+
 // MARK: Live tests against disposable fixtures (scripts/test-mysql.py)
 
 private let liveEnabled = ProcessInfo.processInfo.environment["DBM_A4_MARIA_TLS_PORT"] != nil

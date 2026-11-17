@@ -99,6 +99,11 @@ def serve_query_loop(sock, mode, handler):
         if "CONNECTION_ID" in text and mode.endswith("idstall"): time.sleep(30); return
         if "CONNECTION_ID" in text:
             sock.sendall(pkt(1, lenenc(1)) + pkt(2, coldef(b"c", 8)) + pkt(3, EOF) + pkt(4, lstr(b"4242")) + pkt(5, EOF)); continue
+        if "@@hostname" in text:  # server identity for binding KILL QUERY to the same instance
+            values = [b"mariadb", b"fake", b"3306", b"1", b"1000"] if "'mariadb'" in text else [b"mysql", b"fake-uuid", b"fake", b"3306"]
+            body = pkt(1, lenenc(len(values))) + b"".join(pkt(2 + i, coldef(b"c%d" % i)) for i in range(len(values)))
+            seq = 2 + len(values)
+            sock.sendall(body + pkt(seq, EOF) + pkt(seq + 1, b"".join(lstr(v) for v in values)) + pkt(seq + 2, EOF)); continue
         if "information_schema" in text:
             sock.sendall(pkt(1, lenenc(3)) + pkt(2, coldef(b"s")) + pkt(3, coldef(b"n")) + pkt(4, coldef(b"k")) + pkt(5, EOF) + pkt(6, EOF)); continue
         handler(sock, text); return
