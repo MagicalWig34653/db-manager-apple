@@ -132,3 +132,26 @@ private let longQuery = "WITH RECURSIVE x(n) AS (VALUES(1) UNION ALL SELECT n+1 
         }
     }
 }
+
+@Test func truncatedWriteResultReportsFailedCommitInsteadOfSuccess() async throws {
+    try await withDatabase { database, url in
+        _ = try await database.execute("CREATE TABLE test(value INTEGER)", allowWrites: true)
+        // A second connection holds a read transaction (rollback journal): the writer cannot commit.
+        let reader = SQLiteDatabase()
+        try await reader.open(url)
+        _ = try await reader.execute("BEGIN", allowWrites: true)
+        _ = try await reader.execute("SELECT * FROM test")
+        await #expect(throws: DatabaseError.busy) {
+            try await database.execute("INSERT INTO test VALUES (1),(2),(3) RETURNING value",
+                                       allowWrites: true, limits: QueryLimits(maxRows: 1))
+        }
+        _ = try await reader.execute("ROLLBACK", allowWrites: true)
+        await reader.close()
+        #expect(try await database.execute("SELECT count(*) FROM test").rows[0][0].value == "0")
+        // Without a competing reader the truncated write commits and reports its real change count.
+        let written = try await database.execute("INSERT INTO test VALUES (1),(2),(3) RETURNING value",
+                                                 allowWrites: true, limits: QueryLimits(maxRows: 1))
+        #expect(written.truncated && written.rows.count == 1 && written.rowsAffected == "3")
+        #expect(try await database.execute("SELECT count(*) FROM test").rows[0][0].value == "3")
+    }
+}

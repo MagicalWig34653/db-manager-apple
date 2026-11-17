@@ -120,20 +120,20 @@ public actor SQLiteDatabase {
             return Unmanaged<CancellationGate>.fromOpaque(context).takeUnretainedValue().shouldStop ? 1 : 0
         }, gatePointer)
         defer { sqlite3_progress_handler(db, 0, nil, nil); withExtendedLifetime(gate) {} }
-        var statement: OpaquePointer?
+        var prepared: OpaquePointer?
         var remainder = ""
         let prepareCode = sql.utf8CString.withUnsafeBufferPointer { buffer in
             var tail: UnsafePointer<CChar>?
-            let code = sqlite3_prepare_v2(db, buffer.baseAddress, -1, &statement, &tail)
+            let code = sqlite3_prepare_v2(db, buffer.baseAddress, -1, &prepared, &tail)
             if let tail { remainder = String(cString: tail) }
             return code
         }
-        defer { if let statement { sqlite3_finalize(statement) } }
+        defer { if let prepared { sqlite3_finalize(prepared) } }
         guard prepareCode == SQLITE_OK else {
             if policy.deniedWrite { throw DatabaseError.writesDisabled }
             throw failure(prepareCode, gate: gate)
         }
-        guard let statement else { throw DatabaseError.emptySQL }
+        guard let statement = prepared else { throw DatabaseError.emptySQL }
         guard remainder.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw DatabaseError.multipleStatements
         }
@@ -155,13 +155,21 @@ public actor SQLiteDatabase {
             let code = sqlite3_step(statement)
             if code == SQLITE_DONE { break }
             guard code == SQLITE_ROW else { throw failure(code, gate: gate) }
-            if rows.count == limits.maxRows { truncated = true; break }
+            if rows.count == limits.maxRows {
+                truncated = true
+                // A write already ran on its first step; its buffered rows are skipped until SQLITE_DONE,
+                // so the autocommit outcome is known before success is reported (review finding 2).
+                if readOnly { break } else { continue }
+            }
             var row: [Cell] = []
             for index in 0..<count { row.append(try cell(statement, index: index, maxBytes: limits.maxCellBytes)) }
             bytes += try JSONEncoder().encode(row).count + 1
             guard bytes <= limits.maxResultBytes else { throw DatabaseError.resultTooLarge }
             rows.append(row)
         }
+        prepared = nil
+        let finalizeCode = sqlite3_finalize(statement)
+        guard finalizeCode == SQLITE_OK else { throw failure(finalizeCode, gate: gate) }
         let result = QueryResult(columns: columns, rows: rows,
                            rowsAffected: readOnly ? nil : String(sqlite3_total_changes64(db) - previousChanges),
                            truncated: truncated,
