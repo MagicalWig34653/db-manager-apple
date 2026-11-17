@@ -256,16 +256,16 @@ public actor MySQLDatabase {
                 try? await statement(current.isMariaDB
                     ? "SET SESSION max_statement_time = \(Double(milliseconds) / 1000)"
                     : "SET SESSION max_execution_time = \(milliseconds)")
-                try await statement(allowWrites ? "SET SESSION TRANSACTION READ WRITE" : "SET SESSION TRANSACTION READ ONLY")
-                if !allowWrites { try await statement("START TRANSACTION READ ONLY") }
+                for text in transactionStart(allowWrites: allowWrites) { try await statement(text) }
                 try Task.checkCancellation()
                 let outcome = try await current.query(sql, limits: limits)
                 try Task.checkCancellation()
-                if !allowWrites && !outcome.truncated { try await statement("COMMIT") }
+                // Success is reported only after COMMIT; a truncated result is rolled back on close.
+                if !outcome.truncated { try await statement("COMMIT") }
                 let columns = outcome.columns.map { Column(name: $0.name, databaseType: $0.typeName) }
                 let duration = start.duration(to: .now)
-                let result = QueryResult(columns: columns, rows: outcome.rows, rowsAffected: outcome.rowsAffected,
-                    truncated: outcome.truncated,
+                let result = QueryResult.transactional(columns: columns, rows: outcome.rows, rowsAffected: outcome.rowsAffected,
+                    truncated: outcome.truncated, allowWrites: allowWrites,
                     durationMS: Int(duration.components.seconds * 1000 + duration.components.attoseconds / 1_000_000_000_000_000))
                 guard try JSONEncoder().encode(result).count <= limits.maxResultBytes else { throw DatabaseError.resultTooLarge }
                 return result
@@ -290,6 +290,12 @@ public actor MySQLDatabase {
             if let connection { await connection.close() }
             throw failure(error, canceled: canceled, stopped: gate.isStopped, confirmed: gate.confirmed)
         }
+    }
+
+    /// Explicit transaction per statement: independent of the server's autocommit default (review finding 1).
+    static func transactionStart(allowWrites: Bool) -> [String] {
+        allowWrites ? ["SET SESSION TRANSACTION READ WRITE", "START TRANSACTION READ WRITE"]
+                    : ["SET SESSION TRANSACTION READ ONLY", "START TRANSACTION READ ONLY"]
     }
 
     /// Maps a worker failure to the public error. The original cause of our own limit aborts is kept

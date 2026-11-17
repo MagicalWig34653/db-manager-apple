@@ -241,6 +241,12 @@ private func rsaKey(bits: Int) throws -> (priv: SecKey, pkcs1: [UInt8]) {
     #expect(throws: DatabaseError.mysqlProtocolError) { try MySQLRSA.encryptPassword(password: [1], nonce: [], publicKeyPEM: valid) }
 }
 
+@Test func mysqlWritesRunInAnExplicitlyCommittedTransaction() {
+    // A server default of autocommit=0 must not roll back a reported write when the connection closes.
+    #expect(MySQLDatabase.transactionStart(allowWrites: true) == ["SET SESSION TRANSACTION READ WRITE", "START TRANSACTION READ WRITE"])
+    #expect(MySQLDatabase.transactionStart(allowWrites: false) == ["SET SESSION TRANSACTION READ ONLY", "START TRANSACTION READ ONLY"])
+}
+
 // MARK: Live tests against disposable fixtures (scripts/test-mysql.py)
 
 private let liveEnabled = ProcessInfo.processInfo.environment["DBM_A4_MARIA_TLS_PORT"] != nil
@@ -294,6 +300,13 @@ private func mysqlLiveSettings(_ port: String = "DBM_A4_MARIA_TLS_PORT", host: S
         #expect(written.rowsAffected == "1" && written.columns.isEmpty)
         #expect(try await database.execute("SELECT value FROM probe.writable").rows[0][0].value == "7")
         _ = try await database.execute("DELETE FROM probe.writable", allowWrites: true)
+        if portVariable == "DBM_A4_MARIA_TLS_PORT" {
+            // MariaDB RETURNING: a truncated write is never committed and is reported as discarded.
+            let discarded = try await database.execute("INSERT INTO probe.writable VALUES(1),(2),(3) RETURNING value",
+                                                       allowWrites: true, limits: QueryLimits(maxRows: 1))
+            #expect(discarded.truncated && discarded.writesDiscarded && discarded.rowsAffected == nil)
+            #expect(try await database.execute("SELECT count(*) FROM probe.writable").rows[0][0].value == "0")
+        }
         // Identifier quoting for navigation, including backticks.
         let odd = try #require(objects.first { $0.schema == "odd`db" })
         #expect(try await database.execute(MySQLDatabase.selectSQL(for: odd)).rows[0][0].value == "kept")
