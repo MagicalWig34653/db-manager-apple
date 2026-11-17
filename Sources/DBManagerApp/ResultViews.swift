@@ -30,7 +30,15 @@ struct ResultSummary: View {
     @ViewBuilder private var content: some View {
         Text("\(result.rows.count) Zeilen · \(result.durationMS) ms").font(.headline)
         if let affected = result.rowsAffected { Text("Änderungen: \(affected)") }
-        if result.truncated { Label("Zeilengrenze erreicht", systemImage: "ellipsis.circle").foregroundStyle(.orange) }
+        ForEach(Self.notices(for: result), id: \.self) { notice in
+            Label(notice, systemImage: result.writesDiscarded ? "arrow.uturn.backward.circle" : "ellipsis.circle")
+                .foregroundStyle(result.writesDiscarded ? .red : .orange)
+        }
+    }
+
+    static func notices(for result: QueryResult) -> [String] {
+        if result.writesDiscarded { return ["Zeilengrenze erreicht: Transaktion nicht bestätigt, Änderungen verworfen"] }
+        return result.truncated ? ["Zeilengrenze erreicht"] : []
     }
 }
 

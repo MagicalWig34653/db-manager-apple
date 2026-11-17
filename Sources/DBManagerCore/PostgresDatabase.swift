@@ -280,8 +280,8 @@ public actor PostgresDatabase {
                 // Truncated streams are terminated rather than drained without a bound.
                 if !truncated { try await drain(current, sql: "COMMIT", logger: logger) }
                 let duration = start.duration(to: .now)
-                let result = QueryResult(columns: columns, rows: rows, rowsAffected: nil, truncated: truncated,
-                    durationMS: Int(duration.components.seconds * 1000 + duration.components.attoseconds / 1_000_000_000_000_000))
+                let result = QueryResult.transactional(columns: columns, rows: rows, rowsAffected: nil, truncated: truncated,
+                    allowWrites: allowWrites, durationMS: Int(duration.components.seconds * 1000 + duration.components.attoseconds / 1_000_000_000_000_000))
                 guard try JSONEncoder().encode(result).count <= limits.maxResultBytes else { throw DatabaseError.resultTooLarge }
                 return result
             } onCancel: { gate.cancel() }

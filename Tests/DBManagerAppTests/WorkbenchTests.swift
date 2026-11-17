@@ -177,3 +177,10 @@ func liveWorkbenchUsesDirectPostgresThenClearsFailedReplacement() async throws {
     await model.operation?.value
     #expect(model.error != nil && model.fileName == nil && model.password.isEmpty)
 }
+
+@Test func discardedWritesAreShownExplicitlyInsteadOfOnlyTheRowLimit() {
+    let discarded = QueryResult.transactional(columns: [], rows: [], rowsAffected: nil, truncated: true, allowWrites: true, durationMS: 1)
+    #expect(ResultSummary.notices(for: discarded).contains { $0.contains("Änderungen verworfen") })
+    let read = QueryResult.transactional(columns: [], rows: [], rowsAffected: nil, truncated: true, allowWrites: false, durationMS: 1)
+    #expect(ResultSummary.notices(for: read) == ["Zeilengrenze erreicht"])
+}

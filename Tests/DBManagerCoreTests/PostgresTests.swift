@@ -103,6 +103,17 @@ func liveSettings(host: String = "localhost", portVariable: String = "DBM_A2_TLS
     await database.close()
 }
 
+@Test(.enabled(if: ProcessInfo.processInfo.environment["DBM_A2_TLS_PORT"] != nil)) func livePostgresTruncatedWriteIsReportedAsDiscarded() async throws {
+    guard let settings = try liveSettings() else { return }
+    let database = PostgresDatabase()
+    _ = try await database.open(settings)
+    let before = try await database.execute("SELECT count(*) FROM writable").rows[0][0].value
+    let result = try await database.execute("INSERT INTO writable SELECT 900 FROM generate_series(1,5) RETURNING value",
+                                            allowWrites: true, limits: QueryLimits(maxRows: 2))
+    #expect(result.truncated && result.writesDiscarded)
+    #expect(try await database.execute("SELECT count(*) FROM writable").rows[0][0].value == before)
+    await database.close()
+}
 @Test(.enabled(if: ProcessInfo.processInfo.environment["DBM_A2_TLS_PORT"] != nil)) func livePostgresLimitsCancellationAndPhysicalRelease() async throws {
     guard let settings = try liveSettings() else { return }
     let database = PostgresDatabase()
@@ -242,4 +253,18 @@ func livePostgresHistoricalCalendarAndEraMatchServer() async throws {
     #expect(PostgresValues.timestamp(.max, zoned: true) == "infinity")
     #expect(PostgresValues.timestamp(.min + 1, zoned: false).hasSuffix(".224193 BC"))
     #expect(PostgresValues.timestamp(.max - 1, zoned: true).hasSuffix(".775806Z"))
+}
+
+@Test func truncatedWriteTransactionsAreReportedAsDiscarded() {
+    let columns = [Column(name: "value", databaseType: "int4")]
+    let rows = [[Cell(kind: .integer, value: "1")]]
+    // Truncated streams are never drained, so COMMIT is skipped: with writes enabled that must be visible.
+    let discarded = QueryResult.transactional(columns: columns, rows: rows, rowsAffected: "2000", truncated: true, allowWrites: true, durationMS: 1)
+    #expect(discarded.writesDiscarded && discarded.truncated && discarded.rowsAffected == nil)
+    let read = QueryResult.transactional(columns: columns, rows: rows, rowsAffected: nil, truncated: true, allowWrites: false, durationMS: 1)
+    #expect(!read.writesDiscarded && read.truncated)
+    let committed = QueryResult.transactional(columns: columns, rows: rows, rowsAffected: "1", truncated: false, allowWrites: true, durationMS: 1)
+    #expect(!committed.writesDiscarded && committed.rowsAffected == "1")
+    let encoded = String(data: try! JSONEncoder().encode(discarded), encoding: .utf8)!
+    #expect(encoded.contains("\"writes_discarded\":true"))
 }

@@ -20,9 +20,20 @@ public struct QueryResult: Codable, Sendable {
     public let rowsAffected: String?
     public let truncated: Bool
     public let durationMS: Int
+    /// The statement's own transaction was rolled back (truncated result with writes enabled).
+    public var writesDiscarded = false
     enum CodingKeys: String, CodingKey {
         case columns, rows, truncated
-        case rowsAffected = "rows_affected", durationMS = "duration_ms"
+        case rowsAffected = "rows_affected", durationMS = "duration_ms", writesDiscarded = "writes_discarded"
+    }
+
+    /// Result of one statement in its own transaction. A truncated stream is never drained, so COMMIT is
+    /// skipped; with writes enabled that rollback must be reported instead of a normal result.
+    public static func transactional(columns: [Column], rows: [[Cell]], rowsAffected: String?, truncated: Bool,
+                                     allowWrites: Bool, durationMS: Int) -> QueryResult {
+        let discarded = truncated && allowWrites
+        return QueryResult(columns: columns, rows: rows, rowsAffected: discarded ? nil : rowsAffected,
+                           truncated: truncated, durationMS: durationMS, writesDiscarded: discarded)
     }
 }
 
