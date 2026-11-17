@@ -102,7 +102,16 @@ private struct LCG { var s: UInt64; mutating func next() -> UInt64 { s = s &* 63
 
 @Test func reviewFuzzParsersNeverTrapOrHang() throws {
     var rng = LCG(s: 0xA4)
-    let greeting: [UInt8] = [0x0A] + Array("8.4.0\0".utf8) + [1, 0, 0, 0] + Array(1...8) + [0, 0xFF, 0xF7, 45, 2, 0, 0xFF, 0x81, 21] + [UInt8](repeating: 0, count: 10) + Array(9...20) + [0] + Array("caching_sha2_password\0".utf8)
+    // Built in steps: one long concatenation exceeds the CI type checker's time limit.
+    var greeting: [UInt8] = [0x0A]
+    greeting += Array("8.4.0\0".utf8)
+    greeting += [1, 0, 0, 0] as [UInt8]
+    greeting += Array(1...8) as [UInt8]
+    greeting += [0, 0xFF, 0xF7, 45, 2, 0, 0xFF, 0x81, 21] as [UInt8]
+    greeting += [UInt8](repeating: 0, count: 10)
+    greeting += Array(9...20) as [UInt8]
+    greeting += [0] as [UInt8]
+    greeting += Array("caching_sha2_password\0".utf8)
     var col = ByteBuffer()
     for s in ["def", "", "", "", "v", "v"] { col.writeMySQLLengthEncodedInteger(UInt64(s.utf8.count)); col.writeString(s) }
     col.writeBytes([0x0C, 45, 0, 255, 0, 0, 0, 253, 0, 0, 0, 0, 0])
